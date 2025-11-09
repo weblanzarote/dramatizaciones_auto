@@ -81,7 +81,22 @@ Esto genera/actualiza `_master_project_list.txt` con todos los proyectos y sus e
 
 **Nota:** El script busca automáticamente todas las carpetas con patrón `NNN_NOMBRE` en el mismo directorio donde está ubicado. No necesitas una carpeta `Dramatizaciones/` separada.
 
-## 🎨 Modelos de Imagen Disponibles
+## 🤖 Modelos de IA Utilizados
+
+### Modelos de Texto
+
+El sistema usa diferentes modelos según la complejidad de la tarea:
+
+| Tarea | Modelo | Costo (por 1M tokens) | Razón |
+|-------|--------|----------------------|-------|
+| **Generación de contenido** (guión completo) | gpt-5-mini | $0.25 input / $2.00 output | Alta calidad para contenido viral |
+| **Generación de ideas virales** | gpt-5-mini | $0.25 input / $2.00 output | Creatividad y análisis avanzado |
+| **Reescritura de prompts** | gpt-5-nano | $0.05 input / $0.40 output | Tarea simple, máximo ahorro |
+| **Nombres de proyecto** | gpt-5-nano | $0.05 input / $0.40 output | Tarea simple, máximo ahorro |
+
+**Ahorro vs gpt-4o-mini:** ~67% en tareas simples, mejor calidad en tareas complejas.
+
+### Modelos de Imagen
 
 1. **GPT Image 1 Mini - Calidad BAJA** ($0.06/10 imgs)
 2. **GPT Image 1 Mini - Calidad MEDIA** ($0.15/10 imgs) ⭐ RECOMENDADO
