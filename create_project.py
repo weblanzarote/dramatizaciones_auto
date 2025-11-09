@@ -374,11 +374,178 @@ def generate_visuals_for_script(script_text: str, project_path: str, client: Ope
         return False
 
 
-# --- 3. FUNCIÓN PRINCIPAL ORQUESTADORA ---
+# --- 3. FUNCIONES PARA MODO AUTOMÁTICO ---
+def run_project_indexer():
+    """Ejecuta crear_indice_proyectos.py para actualizar el master list."""
+    print("📊 Actualizando índice de proyectos...")
+    try:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        indexer_path = os.path.join(script_dir, "crear_indice_proyectos.py")
+
+        if not os.path.exists(indexer_path):
+            print(f"⚠️ No se encontró crear_indice_proyectos.py en {indexer_path}")
+            return False
+
+        result = subprocess.run(
+            [sys.executable, indexer_path],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        print("✅ Índice de proyectos actualizado correctamente")
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Error al ejecutar crear_indice_proyectos.py: {e}")
+        print(f"Salida: {e.stdout}")
+        print(f"Error: {e.stderr}")
+        return False
+
+
+def get_next_project_number():
+    """Lee el master list y determina el siguiente número de proyecto."""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    master_list_path = os.path.join(script_dir, "_master_project_list.txt")
+
+    if not os.path.exists(master_list_path):
+        print("⚠️ No se encontró _master_project_list.txt, usando número 1")
+        return 1
+
+    max_number = 0
+    try:
+        with open(master_list_path, "r", encoding="utf-8") as f:
+            for line in f:
+                # Buscar líneas que empiecen con número_NOMBRE
+                match = re.match(r'^(\d+)_', line)
+                if match:
+                    num = int(match.group(1))
+                    if num > max_number:
+                        max_number = num
+
+        next_number = max_number + 1
+        print(f"📈 Último proyecto: {max_number}, siguiente: {next_number}")
+        return next_number
+    except Exception as e:
+        print(f"❌ Error al leer _master_project_list.txt: {e}")
+        return 1
+
+
+def generate_project_name_from_idea(idea_text: str, client: OpenAI):
+    """Genera un nombre corto de proyecto basado en la idea usando OpenAI."""
+    print("🏷️ Generando nombre de proyecto...")
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": (
+                    "Eres un asistente que genera nombres cortos de proyecto. "
+                    "Dado un texto descriptivo, debes crear un nombre corto de 1-3 palabras "
+                    "en MAYÚSCULAS que capture la esencia del contenido. "
+                    "El nombre debe ser memorable, descriptivo y apropiado para un proyecto de misterio/paranormal. "
+                    "RESPONDE SOLO CON EL NOMBRE, SIN EXPLICACIONES. "
+                    "Ejemplos: METROMADRID, CASTILLOCARDONA, PALACIOLINARES, HOMBREPEZ"
+                )},
+                {"role": "user", "content": f"Genera un nombre de proyecto para: {idea_text}"}
+            ]
+        )
+
+        project_name = response.choices[0].message.content.strip()
+        # Limpiar el nombre (solo letras y números, mayúsculas)
+        project_name = re.sub(r'[^A-Z0-9]', '', project_name.upper())
+
+        print(f"✅ Nombre generado: {project_name}")
+        return project_name
+    except Exception as e:
+        print(f"❌ Error al generar nombre de proyecto: {e}")
+        # Fallback: generar nombre genérico basado en timestamp
+        import datetime
+        fallback_name = f"PROYECTO{datetime.datetime.now().strftime('%m%d%H%M')}"
+        print(f"⚠️ Usando nombre fallback: {fallback_name}")
+        return fallback_name
+
+
+def generate_automatic_idea(client: OpenAI):
+    """Analiza el master list y genera una nueva idea viral usando OpenAI."""
+    print("\n" + "="*70)
+    print("🤖 MODO AUTOMÁTICO ACTIVADO")
+    print("="*70)
+
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    master_list_path = os.path.join(script_dir, "_master_project_list.txt")
+
+    if not os.path.exists(master_list_path):
+        print(f"❌ Error: No se encontró {master_list_path}")
+        return None
+
+    # Leer el contenido del master list
+    print("📖 Leyendo análisis de proyectos anteriores...")
+    try:
+        with open(master_list_path, "r", encoding="utf-8") as f:
+            master_content = f.read()
+    except Exception as e:
+        print(f"❌ Error al leer el archivo: {e}")
+        return None
+
+    # Crear el prompt para OpenAI
+    print("🧠 Analizando proyectos virales y generando nueva idea...")
+
+    system_prompt = """
+Eres un analista de contenido viral experto en la cuenta 'Relatos Extraordinarios'.
+
+Tu tarea es:
+1. Analizar el índice de proyectos proporcionado
+2. Identificar patrones en los proyectos VIRALES (_v) y MEDIO VIRALES (_mv)
+3. Generar UNA SOLA idea original para un nuevo proyecto que:
+   - Siga los patrones de los proyectos virales exitosos
+   - Sea completamente original (no repetir temas ya hechos)
+   - Tenga potencial viral similar
+   - Se centre en misterio, paranormal, leyendas españolas, lugares abandonados o historias extraordinarias
+   - Sea específica y detallada (200-300 palabras)
+
+IMPORTANTE:
+- Responde SOLO con la idea del nuevo proyecto, sin explicaciones adicionales
+- La idea debe ser un texto narrativo listo para usar
+- No incluyas títulos ni encabezados, solo el contenido de la idea
+- Debe ser similar en tono y estructura a las ideas existentes en el índice
+"""
+
+    user_prompt = f"""
+Aquí está el índice completo de proyectos con especial atención a los VIRALES y MEDIO VIRALES al final:
+
+{master_content}
+
+Genera UNA idea original para el siguiente proyecto que tenga alto potencial viral.
+"""
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.8  # Un poco de creatividad
+        )
+
+        new_idea = response.choices[0].message.content.strip()
+
+        print("\n" + "="*70)
+        print("💡 NUEVA IDEA GENERADA:")
+        print("="*70)
+        print(new_idea)
+        print("="*70 + "\n")
+
+        return new_idea
+    except Exception as e:
+        print(f"❌ Error al generar idea automática: {e}")
+        return None
+
+
+# --- 4. FUNCIÓN PRINCIPAL ORQUESTADORA ---
 def main():
     parser = argparse.ArgumentParser(description="Automatización para Relatos Extraordinarios")
-    parser.add_argument("--idea", required=True, help="La idea principal para el vídeo.")
-    parser.add_argument("--project-name", required=True, help="El nombre de la carpeta del proyecto (p.ej. 192_RISA).")
+    parser.add_argument("--idea", required=False, help="La idea principal para el vídeo.")
+    parser.add_argument("--project-name", required=False, help="El nombre de la carpeta del proyecto (p.ej. 192_RISA).")
     parser.add_argument("--overwrite-images", action="store_true", help="Regenera todas las imágenes aunque ya existan.")
     parser.add_argument("--force-video", action="store_true", help="Regenera el video aunque ya exista.")
     parser.add_argument("--image-model", default=None,
@@ -387,6 +554,45 @@ def main():
     parser.add_argument("--image-quality", default=None,
                         help="Calidad de imagen: low/medium/high (GPT Image) o standard/hd (DALL-E). Si no se especifica, se mostrará un menú interactivo.")
     args = parser.parse_args()
+
+    # --- MODO AUTOMÁTICO ---
+    # Si no se proporcionó idea ni project-name, activar modo automático
+    if args.idea is None and args.project_name is None:
+        print("\n🚀 Modo automático detectado (no se proporcionaron --idea ni --project-name)")
+
+        # 1. Ejecutar crear_indice_proyectos.py
+        if not run_project_indexer():
+            print("❌ Error al actualizar el índice de proyectos. Abortando.")
+            return
+
+        # 2. Generar idea automáticamente analizando proyectos virales
+        auto_idea = generate_automatic_idea(client)
+        if not auto_idea:
+            print("❌ Error al generar idea automática. Abortando.")
+            return
+
+        # 3. Determinar siguiente número de proyecto
+        next_number = get_next_project_number()
+
+        # 4. Generar nombre de proyecto
+        project_short_name = generate_project_name_from_idea(auto_idea, client)
+
+        # 5. Construir nombre completo del proyecto
+        args.idea = auto_idea
+        args.project_name = f"{next_number}_{project_short_name}"
+
+        print(f"\n✅ Proyecto automático configurado:")
+        print(f"   📂 Nombre: {args.project_name}")
+        print(f"   💡 Idea: {auto_idea[:100]}...")
+        print("\n" + "="*70)
+        print("Continuando con el flujo normal de generación...")
+        print("="*70 + "\n")
+
+    # Verificar que ahora tenemos idea y project-name (manual o automático)
+    if not args.idea or not args.project_name:
+        print("❌ Error: Se requiere --idea y --project-name (o ninguno para modo automático)")
+        parser.print_help()
+        return
 
     # Si no se especificaron modelo y calidad, mostrar menú interactivo
     if args.image_model is None or args.image_quality is None:
