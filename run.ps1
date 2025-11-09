@@ -157,10 +157,17 @@ if (-not $NoBurn -and (Test-Path $AssOut) -and (Test-Path $VideoOut)) {
     Write-Host ">> Quemando subtítulos (ASS) con fuente Bebas Neue -> $FinalOut"
 
     # 1) Copiar la fuente al proyecto
-    $FontSrc     = 'C:\Users\webla\OneDrive\Desktop\RELATOS_EXTRAORDINARIOS\Fonts\Bebas\Bebas_Neue\BebasNeue-Regular.ttf'
+    $FontSrc     = Join-Path $RootDir 'Fonts\BebasNeue-Regular.ttf'
     $FontsDirOut = Join-Path $PWD 'Fonts'
-    New-Item -ItemType Directory -Force $FontsDirOut | Out-Null
-    Copy-Item $FontSrc $FontsDirOut -Force
+
+    if (-not (Test-Path $FontSrc)) {
+        Write-Host "⚠️ Advertencia: Fuente no encontrada en $FontSrc"
+        Write-Host "   Creando directorio Fonts local y continuando sin fuente personalizada..."
+        New-Item -ItemType Directory -Force $FontsDirOut | Out-Null
+    } else {
+        New-Item -ItemType Directory -Force $FontsDirOut | Out-Null
+        Copy-Item $FontSrc $FontsDirOut -Force
+    }
 
     # 2) Filtro con rutas RELATIVAS (evita "C:")
     $SubFilter = 'subtitles=typing.ass:fontsdir=./Fonts'
