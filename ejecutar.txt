@@ -1,0 +1,139 @@
+python .\generate_from_txt_drama.py ".\indomables.txt" `
+  --outdir ".\Audios\Indomables" `
+  --model "eleven_multilingual_v2" `
+  --ext ".mp3" `
+  --silence-ms 250 `
+  --merge-out ".\Audios\indomables_merged.mp3"
+
+
+EJECUCION SENCILLA SIN SUBTITULOS
+.\run.ps1 -NoBurn -Resolution 1080x1920 -Fit cover
+
+CON KEN BURNS SIN SUBTITULOS
+.\run.ps1 -NoBurn -Resolution 1080x1920 -Fit cover -KenBurns in -KbZoom 0.25 -KbPan random -KbSticky
+
+KEN BURNS CON SUBTITULOS y RALENTIZADO DE VIDEOS
+.\run.ps1 -Resolution 1080x1920 -Fit cover -KenBurns in -KbZoom 0.15 -KbPan random -KbSticky -VideoFill slow
+
+CON KEN BURNS CON SUBTITULOS y RALENTIZADO DE VIDEOS y SONIDO DE FONDO 
+.\run.ps1 -Resolution 1080x1920 -Fit cover -KenBurns in -KbZoom 0.2 -KbPan random -KbSticky -VideoFill slow `
+  -MediaKeepAudio -MediaAudioVol 0.1 `
+  -MusicAudio -MusicAudioVol 0.1
+
+
+
+
+CORREGIR VOCES
+.\run.ps1 -Remix
+
+AÑADIR SUBTITULOS
+cd 'C:\Users\webla\Desktop\PYTHONS\Dramatizaciones\2_ENCUENTRO\Out'
+ffmpeg -y -i video.mp4 -vf "subtitles=typing.ass" -c:a copy video_subs.mp4
+
+
+MAPA DE ALIGNMENT
+7 8 9   ← arriba
+4 5 6   ← centro
+1 2 3   ← abajo
+
+
+****ESTILOS VISUALES STORYBOOK****
+
+Pixel art: Estilo que emula los gráficos de videojuegos retro.
+
+Cómic: Ilustraciones con contornos definidos, sombreado y una paleta de colores característica del género.
+
+Plastilina animada (Claymation): Imágenes que simulan estar hechas de plastilina, con una textura y volumen particulares.
+
+Libros para colorear: Dibujos con líneas claras y espacios en blanco, listos para ser coloreados.
+
+Acuarela: Un estilo que imita la técnica de pintura con acuarelas, con colores translúcidos y bordes difuminados.
+
+Ganchillo (Crochet): Un estilo que da la apariencia de que los personajes y escenarios están tejidos a ganchillo.
+
+  
+****GENERAR TEXTO****
+  
+muchas gracias! me puedes facilitar el texto del storybook con el formato para cada página como este? Por favor asegúrate que el texto coincida exactamente con el texto del storybook
+
+[NARRADOR]
+[imagen:1.png]
+Texto exacto de cada página
+
+no es el mismo texto que el storybook.. por favor genérame exactamente el mismo texto
+
+
+****COMPARTIR EN TIKTOK****
+por favor pásame un texto para compartir esto en tiktok. IMPORTANTE: evita empezar con "Te atreves" o "Descubre" o "Conoces" o "Conocías". Usa siempre el hashtag #RelatosExtraordinarios a parte de los que consideras (hasta un máximo de 4). Y ten en cuenta que la cuenta que lo va a compartir se llama Relatos Extraordinarios. También es importante que tanto la descripción como los hastags ayuden al posicionamiento del video en la plataforma
+
+
+****NUEVAS HISTORIAS****
+necesito historias interesantes, cortas, para publicar en una cuenta de tik tok llamada Relatos Extraordinarios... a ser posible basadas en casos reales... ¿me puedes buscar algunas para elegir?
+
+
+****CREAR STORYBOOK****
+por favor genérame un storybook a partir de este guión. Yo te doy el texto de cada página. Es importante que no lo cambies en absoluto. El estilo debe ser el de una novela gráfica moderna estilo cómic gótico, con tonos oscuros y atmosféricos. Busca un alto nivel de detalle y una calidad cinematográfica en la composición de cada escena. La iluminación debe ser dramática, usando sombras profundas (claroscuro) para resaltar la tensión y el horror gótico de la historia.
+
+
+****ANIMAR EN FLOW****
+animate this scene with appropriate sound (not music, not talking). A tall, vertical video, perfect for social media. --ar 9:16
+
+
+****SET API KEY****
+setx ELEVENLABS_API_KEY "sk_1aa9844eaff071970255f84f1ce39a2492a00be11cdb9b95"
+
+
+****REDIMENSIONAR IMAGENES****
+python redimensionar_imagenes.py
+
+
+****CREAR ARTÍCULO PARA WEB****
+He creado un vídeo con este guión exacto. Este vídeo lo voy a publicar en la web relatosextraordinarios.es y me gustaría que junto al mismo hubiera un artículo interesante sobre el vídeo o relacionado con el vídeo que sirva para dar contexto al vídeo y para posicionarlo a nivel de SEO. ¿Podrías escribir este artículo para mí? Por favor, al final añade 5 hashtags separados por coma pero sin el símbolo de almohadilla #, solo palabras separadas por coma. IMPORTANTE: escríbelo en un formato que me permita copiarlo y pegarlo en google docs manteniendo la estructura de párrafos, negritas y demás. Los encabezados de los apartados deben estar con una letra un poco mayor. Otro detalle, evita el autobombo o la autocomplacencia, por ejemplo con frases como (El clímax de la historia es un golpe maestro de suspense.) El vídeo lo hemos creado nosotros, no podemos mostrarnos petulantes ni presuntuosos ni presumidos. 
+
+
+****STORYBOOK PARA LEP****
+por favor genérame un storybook a partir de este guión. Yo te doy el texto de cada página. Es importante que no lo cambies en absoluto. Estilo artístico Boceto urbano (Urban sketch)
+
+
+
+****FRANKENSTEIN****
+
+
+Por favor, genérame un storybook a partir del siguiente guion. Yo te proporcionaré el texto exacto para cada página y es crucial que no lo modifiques en absoluto.
+
+--- ESTILO VISUAL ---
+
+El estilo debe ser el de una novela gráfica moderna estilo cómic, con tonos oscuros y atmosféricos. Busca un alto nivel de detalle y una calidad cinematográfica en la composición de cada escena. La iluminación debe ser dramática, usando sombras profundas (claroscuro) para resaltar la tensión y el horror gótico de la historia.
+
+--- REFERENCIA DE PERSONAJES PRINCIPALES (MUY IMPORTANTE) ---
+
+Para asegurar la coherencia visual en toda la serie de diez capítulos, es absolutamente crucial que los dos personajes principales se adhieran siempre a las siguientes descripciones:
+
+1. Dr. Víctor Frankenstein:
+
+Apariencia: Es un hombre joven (veintipocos años), de aspecto pálido e intelectual.
+
+Cabello: Pelo oscuro, algo largo y perpetuamente desordenado, reflejando su obsesión y su abandono personal.
+
+Rostro: Rasgos afilados e inteligentes. A medida que avanza la historia, debe mostrar un cansancio extremo, con ojeras pronunciadas. Su expresión es la clave: debe pasar de la ambición brillante a la manía, el horror y, finalmente, la desesperación.
+
+Vestimenta: Ropa propia de un estudiante de finales del siglo dieciocho (camisa de lino, chaleco, pantalones oscuros), pero a menudo arrugada o descuidada.
+
+2. La Criatura:
+
+Físico: Es un gigante de casi dos metros y medio. Su cuerpo es anatómicamente correcto pero con proporciones grotescas y una musculatura visible bajo la piel. Importante: NO es verde y NO tiene tornillos en el cuello. Tampoco está hipermusculado. 
+
+Piel: De un tono amarillento, translúcida, casi cerosa. Se deben ver claramente las costuras negras y toscas donde sus partes fueron unidas.
+
+Cabello: Una melena de pelo negro, largo y lustroso. Este es su único rasgo hermoso, lo que crea un contraste perturbador.
+
+Rostro: Labios negros y finos, y ojos amarillos y acuosos. Su rostro debe ser capaz de mostrar confusión, tristeza y una furia terrible. Es una figura trágica, no un simple monstruo.
+
+--- INSTRUCCIÓN FINAL ---
+
+Por favor, utiliza estas descripciones como una referencia fija e inalterable para generar a Víctor y a la Criatura en todas las escenas en las que aparezcan. Adapta únicamente sus expresiones faciales, posturas y emociones a lo que narra el guion de cada página, pero su aspecto fundamental (rasgos, cicatrices, vestimenta base) debe permanecer idéntico en todos los capítulos.
+
+
+--- AUTOMATIZADOR ---
+
+python create_project.py --idea "El vuelo 914 de Pan Am: La leyenda de un avión que despegó en mil novecientos cincuenta y cinco y aterrizó treinta y siete años después en Caracas, Venezuela. Los pasajeros no habían envejecido un solo día y no tenían ni idea de lo que había sucedido. Aunque es una leyenda urbana, podemos narrarla como si fuera un expediente clasificado recién descubierto." --project-name "191_VUELO914"
