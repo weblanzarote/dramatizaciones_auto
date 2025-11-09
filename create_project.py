@@ -1,5 +1,6 @@
 import os
 import shutil
+import time
 from dotenv import load_dotenv
 import subprocess
 import argparse
@@ -112,7 +113,7 @@ def rewrite_prompt_for_safety(prompt_text: str, client: OpenAI):
 # --- 2. GENERACIÓN DE IMÁGENES ESTÁTICAS CON OPENAI (DALL-E 3) ---
 # --- VERSIÓN MEJORADA CON REINTENTO AUTOMÁTICO ---
 def generate_visuals_for_script(script_text: str, project_path: str, client: OpenAI, overwrite: bool = False,
-                                image_model: str = "gpt-image-1-mini", image_quality: str = "medium"):
+                                image_model: str = "dall-e-3", image_quality: str = "standard"):
     """
     Genera imágenes para el guion con un sistema de reintento automático
     que reescribe los prompts bloqueados por el sistema de seguridad.
@@ -188,7 +189,14 @@ def generate_visuals_for_script(script_text: str, project_path: str, client: Ope
                   quality=image_quality,
                   n=1,
                 )
+
+                # Validar que tenemos una URL válida
+                if not response.data or len(response.data) == 0:
+                    raise RuntimeError(f"La respuesta de la API no contiene datos de imagen")
+
                 image_url = response.data[0].url
+                if not image_url:
+                    raise RuntimeError(f"La API no devolvió una URL de imagen válida. Respuesta: {response.data[0]}")
 
                 image_response = requests.get(image_url, timeout=60)
                 image_response.raise_for_status()
@@ -240,6 +248,13 @@ def generate_visuals_for_script(script_text: str, project_path: str, client: Ope
                     all_images_successful = False
                     break
 
+            except RuntimeError as e:
+                # Error de validación (URL None, respuesta vacía, etc.)
+                print(f"❌ Error de validación: {e}")
+                print(f"   Modelo '{image_model}' podría no ser válido o no soportar este tamaño/calidad.")
+                all_images_successful = False
+                break
+
             except Exception as e:
                 print(f"❌ Error inesperado al generar la imagen para la escena {i}: {e}")
                 all_images_successful = False
@@ -264,11 +279,11 @@ def main():
     parser.add_argument("--idea", required=True, help="La idea principal para el vídeo.")
     parser.add_argument("--project-name", required=True, help="El nombre de la carpeta del proyecto (p.ej. 192_RISA).")
     parser.add_argument("--overwrite-images", action="store_true", help="Regenera todas las imágenes aunque ya existan.")
-    parser.add_argument("--image-model", default="gpt-image-1-mini",
+    parser.add_argument("--image-model", default="dall-e-3",
                         choices=["gpt-image-1-mini", "gpt-image-1", "dall-e-3", "dall-e-2"],
-                        help="Modelo de generación de imágenes (default: gpt-image-1-mini para bajo costo)")
-    parser.add_argument("--image-quality", default="medium",
-                        help="Calidad de imagen: low/medium/high (GPT Image) o standard/hd (DALL-E). Default: medium")
+                        help="Modelo de generación de imágenes (default: dall-e-3). NOTA: gpt-image-1 puede no estar disponible.")
+    parser.add_argument("--image-quality", default="standard",
+                        help="Calidad de imagen: low/medium/high (GPT Image) o standard/hd (DALL-E). Default: standard")
     args = parser.parse_args()
 
     project_path = args.project_name
