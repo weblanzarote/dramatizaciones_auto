@@ -1,10 +1,12 @@
 import os
+import re
 from pathlib import Path
 
 # --- Configuración ---
 
 # El directorio que contiene todas las carpetas de tus proyectos
-ROOT_FOLDER = Path("Dramatizaciones")
+# Usar el directorio actual donde está el script
+ROOT_FOLDER = Path(__file__).parent
 
 # El archivo de salida donde se guardará el índice
 OUTPUT_FILE = "_master_project_list.txt"
@@ -54,11 +56,6 @@ def get_sort_key(linea_proyecto):
         return 99999 
 
 def main():
-    if not ROOT_FOLDER.is_dir():
-        print(f"Error: El directorio '{ROOT_FOLDER}' no existe.")
-        print("Asegúrate de ejecutar este script al mismo nivel que tu carpeta Dramatizaciones.")
-        return
-
     print(f"Buscando proyectos en: {ROOT_FOLDER.resolve()}")
     
     project_summaries = []
@@ -73,6 +70,10 @@ def main():
             continue # Ignora archivos sueltos
 
         project_name = subfolder.name
+
+        # Filtrar solo carpetas de proyectos (que empiecen con número_)
+        if not re.match(r'^\d+_', project_name):
+            continue # Ignora carpetas que no son proyectos
         
         # --- NUEVO: Clasificación de proyectos ---
         if project_name.endswith("_v"):
