@@ -49,17 +49,17 @@ python create_project.py --idea "Tu idea aquí" --project-name "205_NOMBREPROYEC
 ### Opciones Adicionales
 
 ```bash
-# Regenerar imágenes aunque ya existan
-python create_project.py --overwrite-images
-
-# Regenerar video aunque ya exista
-python create_project.py --force-video
-
-# Especificar modelo de imagen
+# Modo automático con modelo de imagen personalizado
 python create_project.py --image-model dall-e-3 --image-quality hd
 
-# Modo automático con opciones específicas
-python create_project.py --image-model gpt-image-1-mini --image-quality medium
+# Modo manual con modelo de imagen personalizado
+python create_project.py --idea "Tu idea" --project-name "205_NOMBRE" --image-model gpt-image-1 --image-quality high
+
+# Regenerar imágenes aunque ya existan
+python create_project.py --idea "Tu idea" --project-name "205_NOMBRE" --overwrite-images
+
+# Regenerar video aunque ya exista
+python create_project.py --idea "Tu idea" --project-name "205_NOMBRE" --force-video
 ```
 
 ## 📊 Gestión de Proyectos
@@ -89,22 +89,26 @@ El sistema usa diferentes modelos según la complejidad de la tarea:
 
 | Tarea | Modelo | Costo (por 1M tokens) | Razón |
 |-------|--------|----------------------|-------|
-| **Generación de contenido** (guión completo) | gpt-5-mini | $0.25 input / $2.00 output | Alta calidad para contenido viral |
-| **Generación de ideas virales** | gpt-5-mini | $0.25 input / $2.00 output | Creatividad y análisis avanzado |
+| **Generación de contenido** (guión completo) | gpt-5-mini | $0.25 input / $2.00 output | Alta calidad narrativa, óptima relación calidad/precio |
+| **Generación de ideas virales** | gpt-5 | $1.25 input / $10.00 output | Máximo análisis de patrones virales, coherencia creativa superior |
 | **Reescritura de prompts** | gpt-5-nano | $0.05 input / $0.40 output | Tarea simple, máximo ahorro |
 | **Nombres de proyecto** | gpt-5-nano | $0.05 input / $0.40 output | Tarea simple, máximo ahorro |
 
-**Ahorro vs gpt-4o-mini:** ~67% en tareas simples, mejor calidad en tareas complejas.
+**Optimización:** gpt-5 para análisis viral crítico, gpt-5-mini para contenido, gpt-5-nano para tareas auxiliares.
 
 ### Modelos de Imagen
 
-1. **GPT Image 1 Mini - Calidad BAJA** ($0.06/10 imgs)
-2. **GPT Image 1 Mini - Calidad MEDIA** ($0.15/10 imgs) ⭐ RECOMENDADO
-3. **GPT Image 1 - Calidad MEDIA** ($0.63/10 imgs)
-4. **GPT Image 1 - Calidad ALTA** ($2.50/10 imgs)
-5. **DALL-E 2 - Standard** ($0.20/10 imgs)
-6. **DALL-E 3 - Standard** ($0.80/10 imgs)
-7. **DALL-E 3 - HD** ($1.20/10 imgs)
+**Por defecto:** GPT Image 1 Mini - Calidad MEDIA ($0.15/10 imgs)
+
+El sistema usa automáticamente `gpt-image-1-mini` con calidad `medium` para optimizar el flujo automático. Si deseas usar otro modelo, especifícalo con `--image-model` y `--image-quality`:
+
+1. **GPT Image 1 Mini - Calidad BAJA** ($0.06/10 imgs) - `--image-model gpt-image-1-mini --image-quality low`
+2. **GPT Image 1 Mini - Calidad MEDIA** ($0.15/10 imgs) ⭐ DEFAULT
+3. **GPT Image 1 - Calidad MEDIA** ($0.63/10 imgs) - `--image-model gpt-image-1 --image-quality medium`
+4. **GPT Image 1 - Calidad ALTA** ($2.50/10 imgs) - `--image-model gpt-image-1 --image-quality high`
+5. **DALL-E 2 - Standard** ($0.20/10 imgs) - `--image-model dall-e-2 --image-quality standard`
+6. **DALL-E 3 - Standard** ($0.80/10 imgs) - `--image-model dall-e-3 --image-quality standard`
+7. **DALL-E 3 - HD** ($1.20/10 imgs) - `--image-model dall-e-3 --image-quality hd`
 
 ## 📁 Estructura del Directorio
 

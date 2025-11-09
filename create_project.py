@@ -519,7 +519,7 @@ Genera UNA idea original para el siguiente proyecto que tenga alto potencial vir
 
     try:
         response = client.chat.completions.create(
-            model="gpt-5-mini",
+            model="gpt-5",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -594,9 +594,11 @@ def main():
         parser.print_help()
         return
 
-    # Si no se especificaron modelo y calidad, mostrar menú interactivo
+    # Si no se especificaron modelo y calidad, usar valores por defecto
     if args.image_model is None or args.image_quality is None:
-        args.image_model, args.image_quality = interactive_model_selection()
+        args.image_model = "gpt-image-1-mini"
+        args.image_quality = "medium"
+        print(f"📸 Usando modelo de imagen por defecto: {args.image_model} ({args.image_quality})")
 
     project_path = args.project_name
     images_path = os.path.join(project_path, "images")
