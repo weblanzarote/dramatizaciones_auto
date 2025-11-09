@@ -2,6 +2,7 @@ import os
 import shutil
 import time
 import sys
+import base64
 from dotenv import load_dotenv
 import subprocess
 import argparse
@@ -279,22 +280,33 @@ def generate_visuals_for_script(script_text: str, project_path: str, client: Ope
                   n=1,
                 )
 
-                # Validar que tenemos una URL válida
+                # Validar que tenemos datos de imagen
                 if not response.data or len(response.data) == 0:
                     raise RuntimeError(f"La respuesta de la API no contiene datos de imagen")
 
-                image_url = response.data[0].url
-                if not image_url:
-                    raise RuntimeError(f"La API no devolvió una URL de imagen válida. Respuesta: {response.data[0]}")
+                image_data = response.data[0]
 
-                image_response = requests.get(image_url, timeout=60)
-                image_response.raise_for_status()
+                # Soportar tanto URL como base64
+                image_url = getattr(image_data, "url", None)
+                b64_json = getattr(image_data, "b64_json", None)
 
-                with open(image_path, "wb") as f:
-                    f.write(image_response.content)
-
-                image_generated = True
-                break # Si la imagen se genera con éxito, salimos del bucle de reintentos
+                if image_url:
+                    # Descargar desde URL
+                    image_response = requests.get(image_url, timeout=60)
+                    image_response.raise_for_status()
+                    with open(image_path, "wb") as f:
+                        f.write(image_response.content)
+                    image_generated = True
+                    break
+                elif b64_json:
+                    # Decodificar desde base64
+                    image_bytes = base64.b64decode(b64_json)
+                    with open(image_path, "wb") as f:
+                        f.write(image_bytes)
+                    image_generated = True
+                    break
+                else:
+                    raise RuntimeError(f"La API no devolvió ni url ni b64_json. Respuesta: {image_data}")
 
             except openai.BadRequestError as e:
                 # Comprobamos si el error es específicamente por moderación
