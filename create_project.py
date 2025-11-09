@@ -111,10 +111,16 @@ def rewrite_prompt_for_safety(prompt_text: str, client: OpenAI):
 
 # --- 2. GENERACIÓN DE IMÁGENES ESTÁTICAS CON OPENAI (DALL-E 3) ---
 # --- VERSIÓN MEJORADA CON REINTENTO AUTOMÁTICO ---
-def generate_visuals_for_script(script_text: str, project_path: str, client: OpenAI):
+def generate_visuals_for_script(script_text: str, project_path: str, client: OpenAI, overwrite: bool = False):
     """
     Genera imágenes para el guion con un sistema de reintento automático
     que reescribe los prompts bloqueados por el sistema de seguridad.
+
+    Args:
+        script_text: El texto del guion con las etiquetas [imagen:N.png]
+        project_path: Ruta al directorio del proyecto
+        client: Cliente de OpenAI
+        overwrite: Si es True, regenera imágenes existentes. Si es False, las salta.
     """
     print("🎨 Empezando la generación de imágenes con reintento automático...")
 
@@ -146,7 +152,12 @@ def generate_visuals_for_script(script_text: str, project_path: str, client: Ope
 
         print(f"🖼️  Generando imagen para escena {i}: '{clean_text[:50]}...'")
         image_path = os.path.join(project_path, "images", f"{i}.png")
-        
+
+        # Verificar si la imagen ya existe y no queremos sobrescribirla
+        if os.path.exists(image_path) and not overwrite:
+            print(f"   ✓ Imagen {i}.png ya existe, saltando generación.")
+            continue
+
         # Guardamos el prompt específico de la escena para poder modificarlo si falla
         current_scene_prompt = f"\"{clean_text}\""
         image_generated = False
@@ -238,6 +249,7 @@ def main():
     parser = argparse.ArgumentParser(description="Automatización para Relatos Extraordinarios")
     parser.add_argument("--idea", required=True, help="La idea principal para el vídeo.")
     parser.add_argument("--project-name", required=True, help="El nombre de la carpeta del proyecto (p.ej. 192_RISA).")
+    parser.add_argument("--overwrite-images", action="store_true", help="Regenera todas las imágenes aunque ya existan.")
     args = parser.parse_args()
 
     project_path = args.project_name
@@ -284,7 +296,7 @@ def main():
             content = {"script": script_content}
 
     # Llamada a la función de imágenes pasando el objeto 'client' para las reescrituras
-    success = generate_visuals_for_script(content["script"], project_path, client)
+    success = generate_visuals_for_script(content["script"], project_path, client, overwrite=args.overwrite_images)
     if not success:
         return
 
