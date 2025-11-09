@@ -448,19 +448,21 @@ def main():
 
     # El bloque que modificaba el guion aquí ya no es necesario,
     # porque nos aseguramos de que siempre trabaje con .png desde el principio.
-    
+
     print("\n🎬 Todo listo. Lanzando el renderizado final con run.ps1...")
-    
-    # Asegúrate de que la ruta a run.ps1 es correcta. Si está en la carpeta superior: ..\\run.ps1
-    # Si create_project.py y run.ps1 están en la misma carpeta, la ruta sería solo "run.ps1"
+
+    # Obtener la ruta absoluta de run.ps1 (está en el mismo directorio que este script)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    run_ps1_path = os.path.join(script_dir, "run.ps1")
+
     command = [
-        "powershell.exe", "-ExecutionPolicy", "Bypass", "-File", "run.ps1",
+        "powershell.exe", "-ExecutionPolicy", "Bypass", "-File", run_ps1_path,
         "-Resolution", "1080x1920", "-Fit", "cover", "-KenBurns", "in",
         "-KbZoom", "0.2", "-KbPan", "random", "-KbSticky", "-VideoFill", "slow",
         "-MediaKeepAudio", "-MediaAudioVol", "0.1",
         "-MusicAudio", "-MusicAudioVol", "0.1"
     ]
-    
+
     try:
         # Ejecutamos el comando desde dentro de la carpeta del proyecto
         subprocess.run(command, cwd=project_path, check=True, shell=True)
@@ -468,7 +470,7 @@ def main():
     except subprocess.CalledProcessError as e:
         print(f"❌ Error al ejecutar run.ps1: {e}")
     except FileNotFoundError:
-        print("❌ Error: 'run.ps1' no encontrado. Revisa la ruta en el script.")
+        print(f"❌ Error: 'run.ps1' no encontrado en {run_ps1_path}. Revisa la ruta en el script.")
 
 
 if __name__ == "__main__":
