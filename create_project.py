@@ -600,20 +600,24 @@ def main():
 
     project_path = args.project_name
     images_path = os.path.join(project_path, "images")
-    
+
     # --- LÓGICA DE CREACIÓN DE PROYECTO ---
     if not os.path.exists(images_path):
         os.makedirs(images_path)
         print(f"📁 Proyecto creado en: ./{project_path}/")
 
-        # Copiamos los archivos base si existen en la carpeta principal
+        # Copiamos los archivos base si existen en la carpeta principal del script
         print("📥 Copiando archivos base (musica.mp3, cierre.mp4)...")
+        script_dir = os.path.dirname(os.path.abspath(__file__))
         for file_name in ["musica.mp3", "cierre.mp4"]:
-            source_file = file_name
+            source_file = os.path.join(script_dir, file_name)
             if os.path.exists(source_file):
-                shutil.copy(source_file, os.path.join(project_path, file_name)) # Copia al directorio del proyecto
+                # Copiar a la carpeta images/
+                dest_file = os.path.join(images_path, file_name)
+                shutil.copy(source_file, dest_file)
+                print(f"   ✓ {file_name} copiado a images/")
             else:
-                print(f"⚠️  Aviso: El archivo '{file_name}' no se encontró en la carpeta principal. No se copiará.")
+                print(f"⚠️  Aviso: El archivo '{file_name}' no se encontró en {script_dir}. No se copiará.")
 
     script_file = os.path.join(project_path, "texto.txt")
     social_file = os.path.join(project_path, "redes.txt")
