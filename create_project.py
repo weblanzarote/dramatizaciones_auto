@@ -523,8 +523,8 @@ Genera UNA idea original para el siguiente proyecto que tenga alto potencial vir
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.8  # Un poco de creatividad
+            ]
+            # Nota: GPT-5 no admite temperature personalizada, usa el valor por defecto (1)
         )
 
         new_idea = response.choices[0].message.content.strip()
