@@ -1,5 +1,8 @@
 import os
 import shutil
+import time
+import sys
+import base64
 from dotenv import load_dotenv
 import subprocess
 import argparse
@@ -107,27 +110,135 @@ def rewrite_prompt_for_safety(prompt_text: str, client: OpenAI):
         return rewritten_prompt
     except Exception as e:
         print(f"❌ Error al intentar reescribir el prompt: {e}")
-        return None        
+        return None
+
+# --- MENÚ INTERACTIVO PARA SELECCIÓN DE MODELO ---
+def interactive_model_selection():
+    """Menú interactivo para seleccionar modelo y calidad de imagen."""
+    print("\n" + "="*70)
+    print("🎨 CONFIGURACIÓN DE GENERACIÓN DE IMÁGENES")
+    print("="*70)
+    print("\nSelecciona el modelo de generación de imágenes:\n")
+
+    models = [
+        {
+            "name": "GPT Image 1 Mini - Calidad BAJA",
+            "model": "gpt-image-1-mini",
+            "quality": "low",
+            "cost": "$0.06 por 10 imágenes",
+            "note": "Más económico, calidad básica"
+        },
+        {
+            "name": "GPT Image 1 Mini - Calidad MEDIA",
+            "model": "gpt-image-1-mini",
+            "quality": "medium",
+            "cost": "$0.15 por 10 imágenes",
+            "note": "Buen balance calidad/precio (RECOMENDADO)"
+        },
+        {
+            "name": "GPT Image 1 - Calidad MEDIA",
+            "model": "gpt-image-1",
+            "quality": "medium",
+            "cost": "$0.63 por 10 imágenes",
+            "note": "Mayor calidad GPT Image"
+        },
+        {
+            "name": "GPT Image 1 - Calidad ALTA",
+            "model": "gpt-image-1",
+            "quality": "high",
+            "cost": "$2.50 por 10 imágenes",
+            "note": "Máxima calidad GPT Image"
+        },
+        {
+            "name": "DALL-E 2 - Standard",
+            "model": "dall-e-2",
+            "quality": "standard",
+            "cost": "$0.20 por 10 imágenes",
+            "note": "Económico, tamaño 1024x1024 (cuadrado)"
+        },
+        {
+            "name": "DALL-E 3 - Standard",
+            "model": "dall-e-3",
+            "quality": "standard",
+            "cost": "$0.80 por 10 imágenes",
+            "note": "Alta calidad, garantizado"
+        },
+        {
+            "name": "DALL-E 3 - HD",
+            "model": "dall-e-3",
+            "quality": "hd",
+            "cost": "$1.20 por 10 imágenes",
+            "note": "Máxima calidad, más detalle"
+        }
+    ]
+
+    for i, m in enumerate(models, 1):
+        print(f"{i}. {m['name']}")
+        print(f"   💰 {m['cost']} | {m['note']}")
+        print()
+
+    while True:
+        try:
+            choice = input("Elige una opción (1-7) [default: 2]: ").strip()
+            if choice == "":
+                choice = "2"
+
+            idx = int(choice) - 1
+            if 0 <= idx < len(models):
+                selected = models[idx]
+                print(f"\n✅ Seleccionado: {selected['name']}")
+                print(f"   Modelo: {selected['model']} | Calidad: {selected['quality']}")
+                print(f"   Costo estimado: {selected['cost']}")
+                print("="*70 + "\n")
+                return selected['model'], selected['quality']
+            else:
+                print("❌ Opción inválida. Elige un número del 1 al 7.")
+        except ValueError:
+            print("❌ Por favor, introduce un número válido.")
+        except KeyboardInterrupt:
+            print("\n\n❌ Cancelado por el usuario.")
+            sys.exit(0)
+
 
 # --- 2. GENERACIÓN DE IMÁGENES ESTÁTICAS CON OPENAI (DALL-E 3) ---
 # --- VERSIÓN MEJORADA CON REINTENTO AUTOMÁTICO ---
-def generate_visuals_for_script(script_text: str, project_path: str, client: OpenAI):
+def generate_visuals_for_script(script_text: str, project_path: str, client: OpenAI, overwrite: bool = False,
+                                image_model: str = "dall-e-3", image_quality: str = "standard"):
     """
     Genera imágenes para el guion con un sistema de reintento automático
     que reescribe los prompts bloqueados por el sistema de seguridad.
+
+    Args:
+        script_text: El texto del guion con las etiquetas [imagen:N.png]
+        project_path: Ruta al directorio del proyecto
+        client: Cliente de OpenAI
+        overwrite: Si es True, regenera imágenes existentes. Si es False, las salta.
+        image_model: Modelo de generación (gpt-image-1-mini, gpt-image-1, dall-e-3, dall-e-2)
+        image_quality: Calidad de imagen (low/medium/high para GPT Image, standard/hd para DALL-E)
     """
-    print("🎨 Empezando la generación de imágenes con reintento automático...")
+    print(f"🎨 Empezando la generación de imágenes con reintento automático...")
+    print(f"   Modelo: {image_model} | Calidad: {image_quality}")
+
+    # Mapeo de tamaños según modelo
+    size_map = {
+        "gpt-image-1-mini": "1024x1536",
+        "gpt-image-1": "1024x1536",
+        "dall-e-3": "1024x1792",
+        "dall-e-2": "1024x1024"
+    }
+    image_size = size_map.get(image_model, "1024x1792")
+    print(f"   Tamaño: {image_size}")
 
     master_prompt = (
-        "Eres un ilustrador de novelas gráficas de terror. El estilo visual es el de un cómic gótico y oscuro, "
-        "fuertemente inspirado en el arte de Mike Mignola (Hellboy), pero con un mayor nivel de detalle cinematográfico. "
-        "Características NO NEGOCIABLES del estilo: "
-        "- **Paleta de colores muy limitada y desaturada:** Dominada por negros profundos, grises fríos, azules nocturnos y un único color de acento ocasional como un rojo sangre o un amarillo enfermizo. "
-        "- **Iluminación dramática (claroscuro):** Usa sombras duras y proyectadas para ocultar detalles y crear tensión. La luz debe parecer que emana de fuentes débiles y misteriosas. "
-        "- **Texturas orgánicas y ásperas:** Trazos de tinta visibles, superficies rugosas en la piedra y la madera, y un grano de película sutil sobre toda la imagen. "
-        "- **Personaje recurrente:** La historia puede incluir a 'El Coleccionista', una figura alta y demacrada con un largo abrigo oscuro y un sombrero de ala ancha que siempre oculta su rostro en la sombra. Si aparece, su aspecto debe ser consistente. "
-        "Cada imagen debe sentirse como una viñeta de la misma página del mismo cómic. Mantén siempre una relación de aspecto vertical de 1024x1536. "
-        "Ahora, ilustra la siguiente escena específica de la historia: "
+        "Crea una ilustración atmosférica al estilo de novela gráfica moderna con enfoque cinematográfico. "
+        "Estilo visual: "
+        "- **Paleta de colores limitada y atmosférica:** Tonos dominantes acordes a la escena (azules nocturnos para misterio, "
+        "ocres cálidos para interiores antiguos, grises fríos para exteriores), con un color de acento ocasional para destacar elementos clave. "
+        "- **Iluminación dramática:** Usa luz y sombras para crear atmósfera y profundidad. La iluminación debe reforzar el mood de la escena. "
+        "- **Composición cinematográfica:** Encuadre que cuente la historia visualmente, con atención al detalle y texturas realistas. "
+        "- **Coherencia narrativa:** Cada imagen debe ser parte de la misma historia visual, manteniendo consistencia en estilo y tono. "
+        "Formato vertical para redes sociales (9:16). "
+        "Ilustra la siguiente escena específica: "
     )
 
     scenes = re.findall(r'\[imagen:\d+\.png\]\s*(.*?)(?=\n\s*\[|$)', script_text, re.DOTALL)
@@ -137,7 +248,7 @@ def generate_visuals_for_script(script_text: str, project_path: str, client: Ope
         return False
 
     all_images_successful = True
-    MAX_RETRIES = 3 # Número máximo de intentos por imagen
+    MAX_RETRIES = 5 # Número máximo de intentos por imagen (aumentado para errores temporales del servidor)
 
     for i, scene_text in enumerate(scenes, 1):
         clean_text = scene_text.strip()
@@ -146,7 +257,12 @@ def generate_visuals_for_script(script_text: str, project_path: str, client: Ope
 
         print(f"🖼️  Generando imagen para escena {i}: '{clean_text[:50]}...'")
         image_path = os.path.join(project_path, "images", f"{i}.png")
-        
+
+        # Verificar si la imagen ya existe y no queremos sobrescribirla
+        if os.path.exists(image_path) and not overwrite:
+            print(f"   ✓ Imagen {i}.png ya existe, saltando generación.")
+            continue
+
         # Guardamos el prompt específico de la escena para poder modificarlo si falla
         current_scene_prompt = f"\"{clean_text}\""
         image_generated = False
@@ -155,31 +271,49 @@ def generate_visuals_for_script(script_text: str, project_path: str, client: Ope
             try:
                 # Componemos el prompt final en cada intento
                 final_prompt = f"{master_prompt} {current_scene_prompt}"
-                
+
                 response = client.images.generate(
-                  model="dall-e-3",
+                  model=image_model,
                   prompt=final_prompt,
-                  size="1024x1792",
-                  quality="standard",
+                  size=image_size,
+                  quality=image_quality,
                   n=1,
                 )
-                image_url = response.data[0].url
-                
-                image_response = requests.get(image_url, timeout=60)
-                image_response.raise_for_status()
-                
-                with open(image_path, "wb") as f:
-                    f.write(image_response.content)
-                
-                image_generated = True
-                break # Si la imagen se genera con éxito, salimos del bucle de reintentos
+
+                # Validar que tenemos datos de imagen
+                if not response.data or len(response.data) == 0:
+                    raise RuntimeError(f"La respuesta de la API no contiene datos de imagen")
+
+                image_data = response.data[0]
+
+                # Soportar tanto URL como base64
+                image_url = getattr(image_data, "url", None)
+                b64_json = getattr(image_data, "b64_json", None)
+
+                if image_url:
+                    # Descargar desde URL
+                    image_response = requests.get(image_url, timeout=60)
+                    image_response.raise_for_status()
+                    with open(image_path, "wb") as f:
+                        f.write(image_response.content)
+                    image_generated = True
+                    break
+                elif b64_json:
+                    # Decodificar desde base64
+                    image_bytes = base64.b64decode(b64_json)
+                    with open(image_path, "wb") as f:
+                        f.write(image_bytes)
+                    image_generated = True
+                    break
+                else:
+                    raise RuntimeError(f"La API no devolvió ni url ni b64_json. Respuesta: {image_data}")
 
             except openai.BadRequestError as e:
                 # Comprobamos si el error es específicamente por moderación
                 if e.code == 'moderation_blocked':
                     print(f"⚠️ Prompt bloqueado en el intento {attempt + 1}. Intentando reescribir...")
                     rewritten_part = rewrite_prompt_for_safety(current_scene_prompt, client)
-                    
+
                     if rewritten_part:
                         current_scene_prompt = rewritten_part # Actualizamos el prompt para el siguiente intento
                     else:
@@ -190,6 +324,38 @@ def generate_visuals_for_script(script_text: str, project_path: str, client: Ope
                     print(f"❌ Error de API no relacionado con la moderación: {e}")
                     all_images_successful = False
                     break
+
+            except openai.APIError as e:
+                # Error del servidor (500, 502, 503, etc.) - es temporal, reintentar
+                if attempt < MAX_RETRIES - 1:
+                    wait_time = (attempt + 1) * 2  # 2s, 4s, 6s...
+                    print(f"⚠️ Error temporal del servidor OpenAI (intento {attempt + 1}/{MAX_RETRIES}). Reintentando en {wait_time}s...")
+                    time.sleep(wait_time)
+                    continue  # Reintentar
+                else:
+                    print(f"❌ Error del servidor OpenAI después de {MAX_RETRIES} intentos: {e}")
+                    all_images_successful = False
+                    break
+
+            except requests.exceptions.RequestException as e:
+                # Error de red al descargar la imagen
+                if attempt < MAX_RETRIES - 1:
+                    wait_time = (attempt + 1) * 2
+                    print(f"⚠️ Error de red al descargar imagen (intento {attempt + 1}/{MAX_RETRIES}). Reintentando en {wait_time}s...")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    print(f"❌ Error de red después de {MAX_RETRIES} intentos: {e}")
+                    all_images_successful = False
+                    break
+
+            except RuntimeError as e:
+                # Error de validación (URL None, respuesta vacía, etc.)
+                print(f"❌ Error de validación: {e}")
+                print(f"   Modelo '{image_model}' podría no ser válido o no soportar este tamaño/calidad.")
+                all_images_successful = False
+                break
+
             except Exception as e:
                 print(f"❌ Error inesperado al generar la imagen para la escena {i}: {e}")
                 all_images_successful = False
@@ -213,7 +379,17 @@ def main():
     parser = argparse.ArgumentParser(description="Automatización para Relatos Extraordinarios")
     parser.add_argument("--idea", required=True, help="La idea principal para el vídeo.")
     parser.add_argument("--project-name", required=True, help="El nombre de la carpeta del proyecto (p.ej. 192_RISA).")
+    parser.add_argument("--overwrite-images", action="store_true", help="Regenera todas las imágenes aunque ya existan.")
+    parser.add_argument("--image-model", default=None,
+                        choices=["gpt-image-1-mini", "gpt-image-1", "dall-e-3", "dall-e-2"],
+                        help="Modelo de generación de imágenes. Si no se especifica, se mostrará un menú interactivo.")
+    parser.add_argument("--image-quality", default=None,
+                        help="Calidad de imagen: low/medium/high (GPT Image) o standard/hd (DALL-E). Si no se especifica, se mostrará un menú interactivo.")
     args = parser.parse_args()
+
+    # Si no se especificaron modelo y calidad, mostrar menú interactivo
+    if args.image_model is None or args.image_quality is None:
+        args.image_model, args.image_quality = interactive_model_selection()
 
     project_path = args.project_name
     images_path = os.path.join(project_path, "images")
@@ -259,7 +435,14 @@ def main():
             content = {"script": script_content}
 
     # Llamada a la función de imágenes pasando el objeto 'client' para las reescrituras
-    success = generate_visuals_for_script(content["script"], project_path, client)
+    success = generate_visuals_for_script(
+        content["script"],
+        project_path,
+        client,
+        overwrite=args.overwrite_images,
+        image_model=args.image_model,
+        image_quality=args.image_quality
+    )
     if not success:
         return
 
