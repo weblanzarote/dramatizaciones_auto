@@ -157,10 +157,10 @@ def generate_visuals_for_script(script_text: str, project_path: str, client: Ope
                 final_prompt = f"{master_prompt} {current_scene_prompt}"
                 
                 response = client.images.generate(
-                  model="gpt-image-1-mini",
+                  model="dall-e-3",
                   prompt=final_prompt,
-                  size="1024x1536",
-                  quality="medium",
+                  size="1024x1792",
+                  quality="standard",
                   n=1,
                 )
                 image_url = response.data[0].url
