@@ -137,7 +137,7 @@ def generate_visuals_for_script(script_text: str, project_path: str, client: Ope
         return False
 
     all_images_successful = True
-    MAX_RETRIES = 3 # Número máximo de intentos por imagen
+    MAX_RETRIES = 5 # Número máximo de intentos por imagen (aumentado para errores temporales del servidor)
 
     for i, scene_text in enumerate(scenes, 1):
         clean_text = scene_text.strip()
@@ -155,7 +155,7 @@ def generate_visuals_for_script(script_text: str, project_path: str, client: Ope
             try:
                 # Componemos el prompt final en cada intento
                 final_prompt = f"{master_prompt} {current_scene_prompt}"
-                
+
                 response = client.images.generate(
                   model="dall-e-3",
                   prompt=final_prompt,
@@ -164,13 +164,13 @@ def generate_visuals_for_script(script_text: str, project_path: str, client: Ope
                   n=1,
                 )
                 image_url = response.data[0].url
-                
+
                 image_response = requests.get(image_url, timeout=60)
                 image_response.raise_for_status()
-                
+
                 with open(image_path, "wb") as f:
                     f.write(image_response.content)
-                
+
                 image_generated = True
                 break # Si la imagen se genera con éxito, salimos del bucle de reintentos
 
@@ -179,7 +179,7 @@ def generate_visuals_for_script(script_text: str, project_path: str, client: Ope
                 if e.code == 'moderation_blocked':
                     print(f"⚠️ Prompt bloqueado en el intento {attempt + 1}. Intentando reescribir...")
                     rewritten_part = rewrite_prompt_for_safety(current_scene_prompt, client)
-                    
+
                     if rewritten_part:
                         current_scene_prompt = rewritten_part # Actualizamos el prompt para el siguiente intento
                     else:
@@ -190,6 +190,31 @@ def generate_visuals_for_script(script_text: str, project_path: str, client: Ope
                     print(f"❌ Error de API no relacionado con la moderación: {e}")
                     all_images_successful = False
                     break
+
+            except openai.APIError as e:
+                # Error del servidor (500, 502, 503, etc.) - es temporal, reintentar
+                if attempt < MAX_RETRIES - 1:
+                    wait_time = (attempt + 1) * 2  # 2s, 4s, 6s...
+                    print(f"⚠️ Error temporal del servidor OpenAI (intento {attempt + 1}/{MAX_RETRIES}). Reintentando en {wait_time}s...")
+                    time.sleep(wait_time)
+                    continue  # Reintentar
+                else:
+                    print(f"❌ Error del servidor OpenAI después de {MAX_RETRIES} intentos: {e}")
+                    all_images_successful = False
+                    break
+
+            except requests.exceptions.RequestException as e:
+                # Error de red al descargar la imagen
+                if attempt < MAX_RETRIES - 1:
+                    wait_time = (attempt + 1) * 2
+                    print(f"⚠️ Error de red al descargar imagen (intento {attempt + 1}/{MAX_RETRIES}). Reintentando en {wait_time}s...")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    print(f"❌ Error de red después de {MAX_RETRIES} intentos: {e}")
+                    all_images_successful = False
+                    break
+
             except Exception as e:
                 print(f"❌ Error inesperado al generar la imagen para la escena {i}: {e}")
                 all_images_successful = False
