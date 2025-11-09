@@ -380,6 +380,7 @@ def main():
     parser.add_argument("--idea", required=True, help="La idea principal para el vídeo.")
     parser.add_argument("--project-name", required=True, help="El nombre de la carpeta del proyecto (p.ej. 192_RISA).")
     parser.add_argument("--overwrite-images", action="store_true", help="Regenera todas las imágenes aunque ya existan.")
+    parser.add_argument("--force-video", action="store_true", help="Regenera el video aunque ya exista.")
     parser.add_argument("--image-model", default=None,
                         choices=["gpt-image-1-mini", "gpt-image-1", "dall-e-3", "dall-e-2"],
                         help="Modelo de generación de imágenes. Si no se especifica, se mostrará un menú interactivo.")
@@ -448,6 +449,19 @@ def main():
 
     # El bloque que modificaba el guion aquí ya no es necesario,
     # porque nos aseguramos de que siempre trabaje con .png desde el principio.
+
+    # Verificar si el video base ya existe
+    video_out_path = os.path.join(project_path, "Out", "video.mp4")
+    video_exists = os.path.exists(video_out_path)
+
+    if video_exists and not args.force_video:
+        print(f"\n✅ El video base ya existe en '{video_out_path}'")
+        print("   Saltando generación de video. Usa --force-video si quieres regenerarlo.")
+        print("\n💡 Puedes ejecutar manualmente desde la carpeta del proyecto:")
+        print(f"   cd {project_path}")
+        print(f"   powershell -ExecutionPolicy Bypass ..\\run.ps1 -NoBurn  (para regenerar solo video)")
+        print(f"   powershell -ExecutionPolicy Bypass ..\\run.ps1           (para quemar subtítulos)")
+        return
 
     print("\n🎬 Todo listo. Lanzando el renderizado final con run.ps1...")
 
