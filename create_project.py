@@ -27,10 +27,10 @@ except Exception as e:
     raise RuntimeError(f"Error al inicializar el cliente de OpenAI: {e}")
 
 
-# --- 1. GENERACIÓN DE CONTENIDO CREATIVO CON OPENAI (gpt-4o-mini) ---
+# --- 1. GENERACIÓN DE CONTENIDO CREATIVO CON OPENAI (gpt-5-mini) ---
 def generate_creative_content(idea: str):
-    """Llama a la API de OpenAI (gpt-4o-mini) para obtener guion, post y texto para redes."""
-    print(f"🧠 Generando contenido creativo con OpenAI para la idea: '{idea}'...")
+    """Llama a la API de OpenAI (gpt-5-mini) para obtener guion, post y texto para redes."""
+    print(f"🧠 Generando contenido creativo con OpenAI (gpt-5-mini) para la idea: '{idea}'...")
 
     # Prompt MEJORADO con instrucciones de formato estrictas para el guion
     system_prompt = """
@@ -71,20 +71,20 @@ def generate_creative_content(idea: str):
     
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-5-mini",
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"Genera el contenido para la siguiente idea: {idea}"}
             ]
         )
-        
+
         content = json.loads(response.choices[0].message.content)
         print("✅ Contenido creativo generado con éxito.")
         return content
-        
+
     except Exception as e:
-        print(f"❌ Error al generar contenido con OpenAI (gpt-4o-mini): {e}")
+        print(f"❌ Error al generar contenido con OpenAI (gpt-5-mini): {e}")
         return None
         
 def rewrite_prompt_for_safety(prompt_text: str, client: OpenAI):
@@ -92,7 +92,7 @@ def rewrite_prompt_for_safety(prompt_text: str, client: OpenAI):
     print("✍️  Reescribiendo el prompt para evitar filtros de seguridad...")
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini", # Usamos un modelo rápido y barato para esta tarea
+            model="gpt-5-nano", # Usamos un modelo rápido y barato para esta tarea simple
             messages=[
                 {"role": "system", "content": (
                     "Eres un asistente que reformula prompts para un generador de imágenes. "
@@ -435,7 +435,7 @@ def generate_project_name_from_idea(idea_text: str, client: OpenAI):
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-5-nano",
             messages=[
                 {"role": "system", "content": (
                     "Eres un asistente que genera nombres cortos de proyecto. "
@@ -519,7 +519,7 @@ Genera UNA idea original para el siguiente proyecto que tenga alto potencial vir
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-5-mini",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
