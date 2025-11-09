@@ -51,8 +51,8 @@ def generate_creative_content(idea: str):
     - El guion completo debe tener entre 10 y 11 escenas.
     - La longitud total debe ser de 250 a 300 palabras.
     - Usa `[NARRADOR]` como hablante para todas las escenas.
-    - Las imágenes deben estar numeradas secuencialmente: `[imagen:1.mp4]`, `[imagen:2.mp4]`, etc.
-    - Todos los números deben estar escritos con letras (ej: "mil novecientos cincuenta y cinco").
+    - IMPORTANTE: Las imágenes deben estar numeradas con DÍGITOS NUMÉRICOS: `[imagen:1.mp4]`, `[imagen:2.mp4]`, `[imagen:3.mp4]`, etc. NO uses palabras como "uno", "dos", "tres".
+    - Los números en el TEXTO NARRATIVO deben estar escritos con letras (ej: "mil novecientos cincuenta y cinco"), pero los números en las etiquetas [imagen:N.mp4] deben ser dígitos (1, 2, 3...).
     - El guion DEBE terminar obligatoriamente con la etiqueta `[CIERRE]` en su propia línea.
     - Para mantener la coherencia visual, la historia debe centrarse en un único elemento o personaje recurrente (por ejemplo, un faro abandonado, una figura sombría, un objeto maldito). Las descripciones de las escenas deben reforzar este elemento central.
     
