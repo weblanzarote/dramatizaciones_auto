@@ -125,15 +125,15 @@ def generate_visuals_for_script(script_text: str, project_path: str, client: Ope
     print("🎨 Empezando la generación de imágenes con reintento automático...")
 
     master_prompt = (
-        "Eres un ilustrador de novelas gráficas de terror. El estilo visual es el de un cómic gótico y oscuro, "
-        "fuertemente inspirado en el arte de Mike Mignola (Hellboy), pero con un mayor nivel de detalle cinematográfico. "
-        "Características NO NEGOCIABLES del estilo: "
-        "- **Paleta de colores muy limitada y desaturada:** Dominada por negros profundos, grises fríos, azules nocturnos y un único color de acento ocasional como un rojo sangre o un amarillo enfermizo. "
-        "- **Iluminación dramática (claroscuro):** Usa sombras duras y proyectadas para ocultar detalles y crear tensión. La luz debe parecer que emana de fuentes débiles y misteriosas. "
-        "- **Texturas orgánicas y ásperas:** Trazos de tinta visibles, superficies rugosas en la piedra y la madera, y un grano de película sutil sobre toda la imagen. "
-        "- **Personaje recurrente:** La historia puede incluir a 'El Coleccionista', una figura alta y demacrada con un largo abrigo oscuro y un sombrero de ala ancha que siempre oculta su rostro en la sombra. Si aparece, su aspecto debe ser consistente. "
-        "Cada imagen debe sentirse como una viñeta de la misma página del mismo cómic. Mantén siempre una relación de aspecto vertical de 1024x1536. "
-        "Ahora, ilustra la siguiente escena específica de la historia: "
+        "Crea una ilustración atmosférica al estilo de novela gráfica moderna con enfoque cinematográfico. "
+        "Estilo visual: "
+        "- **Paleta de colores limitada y atmosférica:** Tonos dominantes acordes a la escena (azules nocturnos para misterio, "
+        "ocres cálidos para interiores antiguos, grises fríos para exteriores), con un color de acento ocasional para destacar elementos clave. "
+        "- **Iluminación dramática:** Usa luz y sombras para crear atmósfera y profundidad. La iluminación debe reforzar el mood de la escena. "
+        "- **Composición cinematográfica:** Encuadre que cuente la historia visualmente, con atención al detalle y texturas realistas. "
+        "- **Coherencia narrativa:** Cada imagen debe ser parte de la misma historia visual, manteniendo consistencia en estilo y tono. "
+        "Formato vertical para redes sociales (9:16). "
+        "Ilustra la siguiente escena específica: "
     )
 
     scenes = re.findall(r'\[imagen:\d+\.png\]\s*(.*?)(?=\n\s*\[|$)', script_text, re.DOTALL)
