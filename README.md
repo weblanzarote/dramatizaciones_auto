@@ -79,6 +79,8 @@ python crear_indice_proyectos.py
 
 Esto genera/actualiza `_master_project_list.txt` con todos los proyectos y sus estadísticas.
 
+**Nota:** El script busca automáticamente todas las carpetas con patrón `NNN_NOMBRE` en el mismo directorio donde está ubicado. No necesitas una carpeta `Dramatizaciones/` separada.
+
 ## 🎨 Modelos de Imagen Disponibles
 
 1. **GPT Image 1 Mini - Calidad BAJA** ($0.06/10 imgs)
@@ -89,22 +91,29 @@ Esto genera/actualiza `_master_project_list.txt` con todos los proyectos y sus e
 6. **DALL-E 3 - Standard** ($0.80/10 imgs)
 7. **DALL-E 3 - HD** ($1.20/10 imgs)
 
-## 📁 Estructura de Proyecto
+## 📁 Estructura del Directorio
 
-Cada proyecto genera:
+La estructura esperada es:
+
 ```
-205_NOMBREPROYECTO/
-├── images/           # Imágenes generadas (PNG)
-│   ├── 1.png
-│   ├── 2.png
+dramatizaciones_auto/          # Directorio principal
+├── create_project.py          # Script principal
+├── crear_indice_proyectos.py  # Generador de índice
+├── _master_project_list.txt   # Índice generado automáticamente
+├── .env                       # Tu API key de OpenAI
+├── 204_CASTILLOCARDONA/       # Proyecto 204
+│   ├── images/
+│   ├── Out/
+│   ├── texto.txt
 │   └── ...
-├── Out/              # Video final
-│   └── video.mp4
-├── texto.txt         # Guion del video
-├── redes.txt         # Post para redes sociales
-├── musica.mp3        # Música de fondo
-└── cierre.mp4        # Video de cierre
+├── 205_NOMBREPROYECTO/        # Proyecto 205 (nuevo)
+│   ├── images/
+│   ├── Out/
+│   └── ...
+└── ...
 ```
+
+**Importante:** Todos los proyectos (carpetas `NNN_NOMBRE`) deben estar en el mismo directorio que los scripts.
 
 ## 🔧 Configuración
 
