@@ -1,6 +1,7 @@
 import os
 import shutil
 import time
+import sys
 from dotenv import load_dotenv
 import subprocess
 import argparse
@@ -108,7 +109,95 @@ def rewrite_prompt_for_safety(prompt_text: str, client: OpenAI):
         return rewritten_prompt
     except Exception as e:
         print(f"❌ Error al intentar reescribir el prompt: {e}")
-        return None        
+        return None
+
+# --- MENÚ INTERACTIVO PARA SELECCIÓN DE MODELO ---
+def interactive_model_selection():
+    """Menú interactivo para seleccionar modelo y calidad de imagen."""
+    print("\n" + "="*70)
+    print("🎨 CONFIGURACIÓN DE GENERACIÓN DE IMÁGENES")
+    print("="*70)
+    print("\nSelecciona el modelo de generación de imágenes:\n")
+
+    models = [
+        {
+            "name": "GPT Image 1 Mini - Calidad BAJA",
+            "model": "gpt-image-1-mini",
+            "quality": "low",
+            "cost": "$0.06 por 10 imágenes",
+            "note": "Más económico, calidad básica"
+        },
+        {
+            "name": "GPT Image 1 Mini - Calidad MEDIA",
+            "model": "gpt-image-1-mini",
+            "quality": "medium",
+            "cost": "$0.15 por 10 imágenes",
+            "note": "Buen balance calidad/precio (RECOMENDADO)"
+        },
+        {
+            "name": "GPT Image 1 - Calidad MEDIA",
+            "model": "gpt-image-1",
+            "quality": "medium",
+            "cost": "$0.63 por 10 imágenes",
+            "note": "Mayor calidad GPT Image"
+        },
+        {
+            "name": "GPT Image 1 - Calidad ALTA",
+            "model": "gpt-image-1",
+            "quality": "high",
+            "cost": "$2.50 por 10 imágenes",
+            "note": "Máxima calidad GPT Image"
+        },
+        {
+            "name": "DALL-E 2 - Standard",
+            "model": "dall-e-2",
+            "quality": "standard",
+            "cost": "$0.20 por 10 imágenes",
+            "note": "Económico, tamaño 1024x1024 (cuadrado)"
+        },
+        {
+            "name": "DALL-E 3 - Standard",
+            "model": "dall-e-3",
+            "quality": "standard",
+            "cost": "$0.80 por 10 imágenes",
+            "note": "Alta calidad, garantizado"
+        },
+        {
+            "name": "DALL-E 3 - HD",
+            "model": "dall-e-3",
+            "quality": "hd",
+            "cost": "$1.20 por 10 imágenes",
+            "note": "Máxima calidad, más detalle"
+        }
+    ]
+
+    for i, m in enumerate(models, 1):
+        print(f"{i}. {m['name']}")
+        print(f"   💰 {m['cost']} | {m['note']}")
+        print()
+
+    while True:
+        try:
+            choice = input("Elige una opción (1-7) [default: 2]: ").strip()
+            if choice == "":
+                choice = "2"
+
+            idx = int(choice) - 1
+            if 0 <= idx < len(models):
+                selected = models[idx]
+                print(f"\n✅ Seleccionado: {selected['name']}")
+                print(f"   Modelo: {selected['model']} | Calidad: {selected['quality']}")
+                print(f"   Costo estimado: {selected['cost']}")
+                print("="*70 + "\n")
+                return selected['model'], selected['quality']
+            else:
+                print("❌ Opción inválida. Elige un número del 1 al 7.")
+        except ValueError:
+            print("❌ Por favor, introduce un número válido.")
+        except KeyboardInterrupt:
+            print("\n\n❌ Cancelado por el usuario.")
+            sys.exit(0)
+
 
 # --- 2. GENERACIÓN DE IMÁGENES ESTÁTICAS CON OPENAI (DALL-E 3) ---
 # --- VERSIÓN MEJORADA CON REINTENTO AUTOMÁTICO ---
@@ -279,12 +368,16 @@ def main():
     parser.add_argument("--idea", required=True, help="La idea principal para el vídeo.")
     parser.add_argument("--project-name", required=True, help="El nombre de la carpeta del proyecto (p.ej. 192_RISA).")
     parser.add_argument("--overwrite-images", action="store_true", help="Regenera todas las imágenes aunque ya existan.")
-    parser.add_argument("--image-model", default="dall-e-3",
+    parser.add_argument("--image-model", default=None,
                         choices=["gpt-image-1-mini", "gpt-image-1", "dall-e-3", "dall-e-2"],
-                        help="Modelo de generación de imágenes (default: dall-e-3). NOTA: gpt-image-1 puede no estar disponible.")
-    parser.add_argument("--image-quality", default="standard",
-                        help="Calidad de imagen: low/medium/high (GPT Image) o standard/hd (DALL-E). Default: standard")
+                        help="Modelo de generación de imágenes. Si no se especifica, se mostrará un menú interactivo.")
+    parser.add_argument("--image-quality", default=None,
+                        help="Calidad de imagen: low/medium/high (GPT Image) o standard/hd (DALL-E). Si no se especifica, se mostrará un menú interactivo.")
     args = parser.parse_args()
+
+    # Si no se especificaron modelo y calidad, mostrar menú interactivo
+    if args.image_model is None or args.image_quality is None:
+        args.image_model, args.image_quality = interactive_model_selection()
 
     project_path = args.project_name
     images_path = os.path.join(project_path, "images")
