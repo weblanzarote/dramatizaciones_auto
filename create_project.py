@@ -111,7 +111,8 @@ def rewrite_prompt_for_safety(prompt_text: str, client: OpenAI):
 
 # --- 2. GENERACIÓN DE IMÁGENES ESTÁTICAS CON OPENAI (DALL-E 3) ---
 # --- VERSIÓN MEJORADA CON REINTENTO AUTOMÁTICO ---
-def generate_visuals_for_script(script_text: str, project_path: str, client: OpenAI, overwrite: bool = False):
+def generate_visuals_for_script(script_text: str, project_path: str, client: OpenAI, overwrite: bool = False,
+                                image_model: str = "gpt-image-1-mini", image_quality: str = "medium"):
     """
     Genera imágenes para el guion con un sistema de reintento automático
     que reescribe los prompts bloqueados por el sistema de seguridad.
@@ -121,8 +122,21 @@ def generate_visuals_for_script(script_text: str, project_path: str, client: Ope
         project_path: Ruta al directorio del proyecto
         client: Cliente de OpenAI
         overwrite: Si es True, regenera imágenes existentes. Si es False, las salta.
+        image_model: Modelo de generación (gpt-image-1-mini, gpt-image-1, dall-e-3, dall-e-2)
+        image_quality: Calidad de imagen (low/medium/high para GPT Image, standard/hd para DALL-E)
     """
-    print("🎨 Empezando la generación de imágenes con reintento automático...")
+    print(f"🎨 Empezando la generación de imágenes con reintento automático...")
+    print(f"   Modelo: {image_model} | Calidad: {image_quality}")
+
+    # Mapeo de tamaños según modelo
+    size_map = {
+        "gpt-image-1-mini": "1024x1536",
+        "gpt-image-1": "1024x1536",
+        "dall-e-3": "1024x1792",
+        "dall-e-2": "1024x1024"
+    }
+    image_size = size_map.get(image_model, "1024x1792")
+    print(f"   Tamaño: {image_size}")
 
     master_prompt = (
         "Crea una ilustración atmosférica al estilo de novela gráfica moderna con enfoque cinematográfico. "
@@ -168,10 +182,10 @@ def generate_visuals_for_script(script_text: str, project_path: str, client: Ope
                 final_prompt = f"{master_prompt} {current_scene_prompt}"
 
                 response = client.images.generate(
-                  model="dall-e-3",
+                  model=image_model,
                   prompt=final_prompt,
-                  size="1024x1792",
-                  quality="standard",
+                  size=image_size,
+                  quality=image_quality,
                   n=1,
                 )
                 image_url = response.data[0].url
@@ -250,6 +264,11 @@ def main():
     parser.add_argument("--idea", required=True, help="La idea principal para el vídeo.")
     parser.add_argument("--project-name", required=True, help="El nombre de la carpeta del proyecto (p.ej. 192_RISA).")
     parser.add_argument("--overwrite-images", action="store_true", help="Regenera todas las imágenes aunque ya existan.")
+    parser.add_argument("--image-model", default="gpt-image-1-mini",
+                        choices=["gpt-image-1-mini", "gpt-image-1", "dall-e-3", "dall-e-2"],
+                        help="Modelo de generación de imágenes (default: gpt-image-1-mini para bajo costo)")
+    parser.add_argument("--image-quality", default="medium",
+                        help="Calidad de imagen: low/medium/high (GPT Image) o standard/hd (DALL-E). Default: medium")
     args = parser.parse_args()
 
     project_path = args.project_name
@@ -296,7 +315,14 @@ def main():
             content = {"script": script_content}
 
     # Llamada a la función de imágenes pasando el objeto 'client' para las reescrituras
-    success = generate_visuals_for_script(content["script"], project_path, client, overwrite=args.overwrite_images)
+    success = generate_visuals_for_script(
+        content["script"],
+        project_path,
+        client,
+        overwrite=args.overwrite_images,
+        image_model=args.image_model,
+        image_quality=args.image_quality
+    )
     if not success:
         return
 
