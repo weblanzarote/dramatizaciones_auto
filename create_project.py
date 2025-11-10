@@ -556,7 +556,7 @@ def generate_visuals_for_script(
 # --- 2.5. ANIMACIÓN DE IMÁGENES CON REPLICATE ---
 def animate_images_with_replicate(project_path: str, overwrite: bool = False):
     """
-    Anima las imágenes PNG del proyecto usando Stable Video Diffusion en Replicate.
+    Anima las imágenes PNG del proyecto usando Seedance 1.0 Pro Fast en Replicate.
 
     Args:
         project_path: Ruta al directorio del proyecto
@@ -573,10 +573,10 @@ def animate_images_with_replicate(project_path: str, overwrite: bool = False):
         return False
 
     print("\n🎬 Iniciando animación de imágenes con Replicate...")
-    print("   Modelo: wan-video/wan-2.5-i2v-fast (Alibaba Wan 2.5)")
-    print("   Duración: ~5 segundos por video")
-    print("   Resolución: Hasta 1080p")
-    print("   Costo estimado: Muy económico (optimizado para velocidad)\n")
+    print("   Modelo: bytedance/seedance-1-pro-fast")
+    print("   Duración: 5 segundos por video")
+    print("   Resolución: 480p (óptima para redes sociales)")
+    print("   Costo: $0.015/segundo → ~$0.75 por proyecto de 10 videos 🎯\n")
 
     images_path = os.path.join(project_path, "images")
     if not os.path.exists(images_path):
@@ -618,10 +618,12 @@ def animate_images_with_replicate(project_path: str, overwrite: bool = False):
                 # Abrir la imagen y enviarla a Replicate
                 with open(image_path, "rb") as img_file:
                     output = replicate_client.run(
-                        "wan-video/wan-2.5-i2v-fast",
+                        "bytedance/seedance-1-pro-fast",
                         input={
                             "image": img_file,
-                            "prompt": "Smooth cinematic camera movement, subtle motion, atmospheric"
+                            "prompt": "Smooth cinematic camera movement, subtle atmospheric motion",
+                            "resolution": "480p",
+                            "duration": "5"
                         }
                     )
 
@@ -853,7 +855,7 @@ def main():
     parser.add_argument("--image-quality", default=None,
                         help="Calidad de imagen: low/medium/high (GPT Image) o standard/hd (DALL-E). Si no se especifica, se mostrará un menú interactivo.")
     parser.add_argument("--animate-images", action="store_true",
-                        help="Anima las imágenes generadas usando Stable Video Diffusion en Replicate (~$0.015 por video).")
+                        help="Anima las imágenes generadas usando Seedance 1.0 Pro Fast (480p, ~$0.075 por video de 5s).")
     args = parser.parse_args()
 
     # --- MODO AUTOMÁTICO ---
