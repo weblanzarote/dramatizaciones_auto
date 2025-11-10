@@ -572,10 +572,11 @@ def animate_images_with_replicate(project_path: str, overwrite: bool = False):
         print("   2. Haber instalado: pip install replicate")
         return False
 
-    print("\n🎬 Iniciando animación de imágenes con Replicate (Stable Video Diffusion)...")
-    print("   Modelo: stability-ai/stable-video-diffusion-img2vid-xt")
-    print("   Duración: ~2-4 segundos por video")
-    print("   Costo estimado: ~$0.015 por video\n")
+    print("\n🎬 Iniciando animación de imágenes con Replicate...")
+    print("   Modelo: wan-video/wan-2.5-i2v-fast (Alibaba Wan 2.5)")
+    print("   Duración: ~5 segundos por video")
+    print("   Resolución: Hasta 1080p")
+    print("   Costo estimado: Muy económico (optimizado para velocidad)\n")
 
     images_path = os.path.join(project_path, "images")
     if not os.path.exists(images_path):
@@ -617,13 +618,10 @@ def animate_images_with_replicate(project_path: str, overwrite: bool = False):
                 # Abrir la imagen y enviarla a Replicate
                 with open(image_path, "rb") as img_file:
                     output = replicate_client.run(
-                        "stability-ai/stable-video-diffusion-img2vid-xt:3f0457e4619daac51203dedb472816fd4af51f3149fa7a9e0b5ffcf1b8172438",
+                        "wan-video/wan-2.5-i2v-fast",
                         input={
                             "image": img_file,
-                            "video_length": "14_frames_with_svd",  # ~2-4 segundos
-                            "sizing_strategy": "maintain_aspect_ratio",
-                            "frames_per_second": 6,
-                            "motion_bucket_id": 127  # Cantidad de movimiento (1-255, 127 es medio)
+                            "prompt": "Smooth cinematic camera movement, subtle motion, atmospheric"
                         }
                     )
 
