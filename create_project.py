@@ -9,6 +9,7 @@ import argparse
 import json
 import re
 import requests
+import textwrap
 from PIL import Image
 from openai import OpenAI
 import openai
@@ -48,8 +49,8 @@ def generate_creative_content(idea: str):
     [imagen:1.mp4]
     En los valles más profundos, se susurran leyendas.
 
-    - El guion completo debe tener entre 10 y 11 escenas.
-    - La longitud total debe ser de 250 a 300 palabras.
+    - El guion completo debe tener entre 7 y 10 escenas.
+    - La longitud total debe ser de 200 a 250 palabras.
     - Usa `[NARRADOR]` como hablante para todas las escenas.
     - IMPORTANTE: Las imágenes deben estar numeradas con DÍGITOS NUMÉRICOS: `[imagen:1.mp4]`, `[imagen:2.mp4]`, `[imagen:3.mp4]`, etc. NO uses palabras como "uno", "dos", "tres".
     - Los números en el TEXTO NARRATIVO deben estar escritos con letras (ej: "mil novecientos cincuenta y cinco"), pero los números en las etiquetas [imagen:N.mp4] deben ser dígitos (1, 2, 3...).
@@ -111,6 +112,31 @@ def rewrite_prompt_for_safety(prompt_text: str, client: OpenAI):
     except Exception as e:
         print(f"❌ Error al intentar reescribir el prompt: {e}")
         return None
+        
+def pixelize_image(path: str, small_edge: int = 256):
+    """
+    Downscale fuerte y upscale con NEAREST para píxel gordo retro.
+    Ajusta small_edge: 256 (suave), 192/160/128 (más “chunky”).
+    """
+    try:
+        im = Image.open(path).convert("RGBA")
+        w, h = im.size
+        if w < h:
+            new_w = small_edge
+            new_h = int(h * (small_edge / w))
+        else:
+            new_h = small_edge
+            new_w = int(w * (small_edge / h))
+        small = im.resize((max(1, new_w), max(1, new_h)), Image.BILINEAR)
+        up = small.resize((w, h), Image.NEAREST)
+        try:
+            up = up.convert("P", palette=Image.ADAPTIVE, colors=48).convert("RGBA")
+        except Exception:
+            pass
+        up.save(path)
+    except Exception as e:
+        print(f"  (postproceso pixelize falló: {e})")
+        
 
 # --- MENÚ INTERACTIVO PARA SELECCIÓN DE MODELO ---
 def interactive_model_selection():
@@ -200,13 +226,149 @@ def interactive_model_selection():
             sys.exit(0)
 
 
-# --- 2. GENERACIÓN DE IMÁGENES ESTÁTICAS CON OPENAI (DALL-E 3) ---
+# ===== ESTILOS DE IMAGEN (presets) =====
+STYLE_PRESETS = [
+    ("Sombras de Gaia (siluetas atmosféricas)", textwrap.dedent("""\
+    Crea una ilustración atmosférica con un estilo visual distintivo llamado 'Sombras de Gaia'.
+    Estilo visual:
+    - Siluetas expresivas: figuras en sombra (sin rasgos) con poses que transmiten emoción.
+    - Atmósfera lumínica: luz difusa, contraluces, haces de luz entre niebla/polvo.
+    - Paleta limitada: azules oscuros/negros/grises con acento cálido (ámbar/dorado/rojo tenue).
+    - Composición cinematográfica vertical, textura orgánica y grano leve.
+    - Coherencia narrativa entre imágenes, como si todas fueran del mismo universo.
+    """).strip()),
+
+    ("Fábulas Nocturnas (animales simbólicos)", textwrap.dedent("""\
+    Crea una ilustración con animales antropomorfos que encarnan roles humanos
+    (por ejemplo, un cuervo mensajero vigilante, un zorro astuto, un gato errante melancólico).
+    Estilo visual:
+    - Tonos nocturnos con bruma y luz teatral.
+    - Sombras largas y enfoque narrativo en la pose.
+    - Paleta reducida con un único color de acento emocional.
+    - Sensación de fábula oscura y cuento moderno.
+    """).strip()),
+
+    ("Tinta + Acento (monocromo)", textwrap.dedent("""\
+    Ilustración monocromática estilo tinta, con un único color de acento que resalte un objeto o emoción.
+    Estilo visual:
+    - Alto contraste, negros profundos y blancos limpios.
+    - Textura de pincel seco, bordes ligeramente irregulares.
+    - Sensación de novela negra / cómic adulto.
+    - Minimalista y muy gráfico.
+    """).strip()),
+
+    ("Pincel Expresionista (pintura digital)", textwrap.dedent("""\
+    Pintura digital expresionista con pinceladas visibles.
+    Estilo visual:
+    - Formas sugeridas más que definidas, bordes suaves.
+    - Luces y sombras dramáticas de estilo cinematográfico.
+    - Colores ligeramente desaturados con estallidos puntuales de color intenso.
+    - Apariencia de concept art de una película.
+    """).strip()),
+
+    ("Diorama de Papel (teatro de sombras)", textwrap.dedent("""\
+    Ilustración estilo diorama de papel recortado.
+    Estilo visual:
+    - Planos superpuestos como capas de cartulina.
+    - Sombras proyectadas para dar profundidad.
+    - Personajes y objetos con bordes nítidos tipo recorte.
+    - Iluminación lateral o contraluz, aspecto artesanal teatral.
+    """).strip()),
+
+    ("Anime Nocturno (línea + cel shading)", textwrap.dedent("""\
+    Ilustración con estética anime japonesa contemporánea.
+    Estilo visual:
+    - Dibujo de contorno claro (línea limpia) y cel shading en 2–3 niveles.
+    - Proporciones estilizadas, ojos expresivos, gestos claros.
+    - Colores planos con sombras definidas; brillos de lluvia y neón.
+    - Fondo con perspectiva profunda y niebla azulada.
+    - Evita textura pictórica; evita pinceladas sueltas; evita realismo fotográfico.
+    """).strip()),
+
+    ("Ghibli Melancólico (acuarela suave)", textwrap.dedent("""\
+    Ilustración inspirada en estudios Ghibli.
+    Estilo visual:
+    - Colores suaves, aspecto de acuarela; contornos discretos.
+    - Luz cálida envolvente, atmósfera de nostalgia y calma.
+    - Detalles naturales (hojas, viento, lluvia delicada) integrados en la escena.
+    - Siluetas redondeadas, formas amables y composición contemplativa.
+    - Evita texturas agresivas y contrastes extremos; evita noir duro.
+    """).strip()),
+
+    ("Pixar Cinemático (3D suave)", textwrap.dedent("""\
+    Ilustración con look de animación tipo Pixar.
+    Estilo visual:
+    - Volúmenes suaves y materiales limpios; sensación 3D con iluminación global suave.
+    - Luces volumétricas; reflejos sutiles en suelo mojado.
+    - Personajes con proporciones caricaturizadas y expresividad clara.
+    - Paleta viva pero controlada: fríos nocturnos con un acento cálido.
+    - Evita grano fílmico y brochazos; evita blanco y negro.
+    """).strip()),
+
+    ("Pixel Noir (8-bit, 16x16 tiles)", textwrap.dedent("""\
+    Ilustración estilo pixel art retro.
+    Requisitos de estilo:
+    - Píxeles grandes y visiblemente cuadriculados (grid perceptible), sin anti-aliasing.
+    - Paleta limitada de 16–32 colores; evita degradados suaves.
+    - Sombreado con dithering y rampas de color cortas; contornos 1–2 px.
+    - Composición clara pensada para tiles 16x16. Evita brochazos, blur y look fotográfico.
+    """).strip()),
+
+    ("Pixel Art Isométrico RPG (16×16 tiles)", textwrap.dedent("""\
+    Ilustración en estilo pixel art isométrico (3/4 view) como un RPG clásico.
+    - Cámara elevada 3/4; líneas ~30–35°, horizonte alto.
+    - Paleta 24–48 colores; píxel grueso, contornos oscuros; bloques planos.
+    - Sombreado por bloques y dithering; suelo/objetos en tiles 16×16 (tileable).
+    - Objetos alineados a rejilla; proporciones tipo sprite; sin blur ni realismo fotográfico.
+    """).strip()),
+]
+STYLE_NAMES = [n for n, _ in STYLE_PRESETS]
+
+def build_master_prompt(style_block: str, scene_text: str) -> str:
+    return (
+        style_block.strip() + "\n\n"
+        "Dirección visual adicional:\n"
+        "- Encuadre cinematográfico pensado para vídeo vertical 9:16.\n"
+        "- Sensación de fotograma de una misma historia o universo visual.\n"
+        "- Mantén atmósfera evocadora y narrativa.\n\n"
+        "Escena específica a ilustrar:\n" + scene_text.strip()
+    )
+
+def interactive_style_selection():
+    print("\n" + "="*70)
+    print("🎨 ESTILO VISUAL")
+    print("="*70)
+    for i, name in enumerate(STYLE_NAMES, 1):
+        print(f"{i}. {name}")
+    while True:
+        raw = input("\nElige estilo (1-{}). [Enter = 1]: ".format(len(STYLE_NAMES))).strip()
+        if raw == "":
+            return STYLE_NAMES[0]
+        try:
+            idx = int(raw) - 1
+            if 0 <= idx < len(STYLE_NAMES):
+                return STYLE_NAMES[idx]
+            else:
+                print("❌ Opción inválida.")
+        except ValueError:
+            print("❌ Introduce un número.")
+
+
+# --- 2. GENERACIÓN DE IMÁGENES ESTÁTICAS CON OPENAI ---
 # --- VERSIÓN MEJORADA CON REINTENTO AUTOMÁTICO ---
-def generate_visuals_for_script(script_text: str, project_path: str, client: OpenAI, overwrite: bool = False,
-                                image_model: str = "dall-e-3", image_quality: str = "standard"):
+def generate_visuals_for_script(
+    script_text: str,
+    project_path: str,
+    client: OpenAI,
+    overwrite: bool = False,
+    image_model: str = "dall-e-3",
+    image_quality: str = "standard",
+    image_style: str = None,
+):
     """
     Genera imágenes para el guion con un sistema de reintento automático
-    que reescribe los prompts bloqueados por el sistema de seguridad.
+    que reescribe los prompts bloqueados por el sistema de seguridad,
+    usando un estilo visual seleccionable.
 
     Args:
         script_text: El texto del guion con las etiquetas [imagen:N.png]
@@ -214,131 +376,137 @@ def generate_visuals_for_script(script_text: str, project_path: str, client: Ope
         client: Cliente de OpenAI
         overwrite: Si es True, regenera imágenes existentes. Si es False, las salta.
         image_model: Modelo de generación (gpt-image-1-mini, gpt-image-1, dall-e-3, dall-e-2)
-        image_quality: Calidad de imagen (low/medium/high para GPT Image, standard/hd para DALL-E)
+        image_quality: Calidad (low/medium/high para GPT Image; standard/hd para DALL·E)
+        image_style: Nombre del estilo a aplicar (de STYLE_NAMES). Si None, usa el primero.
     """
     print(f"🎨 Empezando la generación de imágenes con reintento automático...")
     print(f"   Modelo: {image_model} | Calidad: {image_quality}")
 
-    # Mapeo de tamaños según modelo
+    # Tamaños recomendados según modelo (vertical por defecto)
     size_map = {
-        "gpt-image-1-mini": "1024x1536",
-        "gpt-image-1": "1024x1536",
-        "dall-e-3": "1024x1792",
-        "dall-e-2": "1024x1024"
+        "gpt-image-1-mini": "1024x1536",  # válido para mini
+        "gpt-image-1":      "1024x1536",
+        "dall-e-3":         "1024x1792",
+        "dall-e-2":         "1024x1024",
     }
-    image_size = size_map.get(image_model, "1024x1792")
+    image_size = size_map.get(image_model, "1024x1536")
     print(f"   Tamaño: {image_size}")
 
-    master_prompt = (
-        "Crea una ilustración atmosférica al estilo de novela gráfica moderna con enfoque cinematográfico. "
-        "Estilo visual: "
-        "- **Paleta de colores limitada y atmosférica:** Tonos dominantes acordes a la escena (azules nocturnos para misterio, "
-        "ocres cálidos para interiores antiguos, grises fríos para exteriores), con un color de acento ocasional para destacar elementos clave. "
-        "- **Iluminación dramática:** Usa luz y sombras para crear atmósfera y profundidad. La iluminación debe reforzar el mood de la escena. "
-        "- **Composición cinematográfica:** Encuadre que cuente la historia visualmente, con atención al detalle y texturas realistas. "
-        "- **Coherencia narrativa:** Cada imagen debe ser parte de la misma historia visual, manteniendo consistencia en estilo y tono. "
-        "Formato vertical para redes sociales (9:16). "
-        "Ilustra la siguiente escena específica: "
-    )
+    # Estilo elegido
+    if not image_style:
+        image_style = STYLE_NAMES[0]
+    style_block = next((b for n, b in STYLE_PRESETS if n == image_style), STYLE_PRESETS[0][1])
+    print(f"   Estilo: {image_style}")
 
+    # Extra: fondo transparente automáticamente solo para modelos GPT Image si lo quisieras
+    supports_background = image_model.startswith("gpt-image-1")
+    transparent_bg = False  # cámbialo a True si quieres PNG transparente para overlays
+
+    # Extraer escenas
     scenes = re.findall(r'\[imagen:\d+\.png\]\s*(.*?)(?=\n\s*\[|$)', script_text, re.DOTALL)
-    
     if not scenes:
         print("\n❌ ERROR CRÍTICO: No se encontraron descripciones de escenas en el guion.")
         return False
 
     all_images_successful = True
-    MAX_RETRIES = 5 # Número máximo de intentos por imagen (aumentado para errores temporales del servidor)
+    MAX_RETRIES = 5  # intentos por imagen
 
     for i, scene_text in enumerate(scenes, 1):
         clean_text = scene_text.strip()
         if not clean_text:
             continue
 
-        print(f"🖼️  Generando imagen para escena {i}: '{clean_text[:50]}...'")
+        print(f"🖼️  Generando imagen para escena {i}: '{clean_text[:60]}...'")
         image_path = os.path.join(project_path, "images", f"{i}.png")
+        os.makedirs(os.path.dirname(image_path), exist_ok=True)
 
-        # Verificar si la imagen ya existe y no queremos sobrescribirla
+        # Si ya existe y no queremos sobrescribir
         if os.path.exists(image_path) and not overwrite:
             print(f"   ✓ Imagen {i}.png ya existe, saltando generación.")
             continue
 
-        # Guardamos el prompt específico de la escena para poder modificarlo si falla
-        current_scene_prompt = f"\"{clean_text}\""
+        # Prompt específico de la escena (mutable si hay reescrituras por moderación)
+        current_scene_prompt = f"{clean_text}"
         image_generated = False
 
         for attempt in range(MAX_RETRIES):
             try:
-                # Componemos el prompt final en cada intento
-                final_prompt = f"{master_prompt} {current_scene_prompt}"
+                # Construir prompt final con el estilo
+                final_prompt = build_master_prompt(style_block, current_scene_prompt)
 
-                response = client.images.generate(
-                  model=image_model,
-                  prompt=final_prompt,
-                  size=image_size,
-                  quality=image_quality,
-                  n=1,
-                )
+                # Preparar kwargs (evita enviar background=None)
+                kwargs = {
+                    "model": image_model,
+                    "prompt": final_prompt,
+                    "size": image_size,
+                    "quality": image_quality,
+                    "n": 1,
+                }
+                if supports_background and transparent_bg:
+                    kwargs["background"] = "transparent"
 
-                # Validar que tenemos datos de imagen
+                response = client.images.generate(**kwargs)
+
+                # Validar datos
                 if not response.data or len(response.data) == 0:
-                    raise RuntimeError(f"La respuesta de la API no contiene datos de imagen")
+                    raise RuntimeError("La respuesta de la API no contiene datos de imagen")
 
                 image_data = response.data[0]
-
-                # Soportar tanto URL como base64
                 image_url = getattr(image_data, "url", None)
                 b64_json = getattr(image_data, "b64_json", None)
 
                 if image_url:
-                    # Descargar desde URL
-                    image_response = requests.get(image_url, timeout=60)
-                    image_response.raise_for_status()
+                    r = requests.get(image_url, timeout=60)
+                    r.raise_for_status()
                     with open(image_path, "wb") as f:
-                        f.write(image_response.content)
+                        f.write(r.content)
                     image_generated = True
-                    break
+
                 elif b64_json:
-                    # Decodificar desde base64
                     image_bytes = base64.b64decode(b64_json)
                     with open(image_path, "wb") as f:
                         f.write(image_bytes)
                     image_generated = True
-                    break
+
                 else:
                     raise RuntimeError(f"La API no devolvió ni url ni b64_json. Respuesta: {image_data}")
 
-            except openai.BadRequestError as e:
-                # Comprobamos si el error es específicamente por moderación
-                if e.code == 'moderation_blocked':
-                    print(f"⚠️ Prompt bloqueado en el intento {attempt + 1}. Intentando reescribir...")
-                    rewritten_part = rewrite_prompt_for_safety(current_scene_prompt, client)
+                # Postproceso: Pixel Art (si el estilo lo indica)
+                if "pixel" in image_style.lower():
+                    # Ajusta small_edge para más/menos “chunky”
+                    pixelize_image(image_path, small_edge=256)
+                    print("   ↳ postproceso: pixelize aplicado (downscale + NEAREST)")
 
+                print(f"   ✔ Guardada: {image_path}")
+                break  # éxito → sal del bucle de reintentos
+
+            except openai.BadRequestError as e:
+                if getattr(e, "code", None) == "moderation_blocked":
+                    print(f"⚠️ Prompt bloqueado (intento {attempt + 1}). Reescribiendo...")
+                    rewritten_part = rewrite_prompt_for_safety(current_scene_prompt, client)
                     if rewritten_part:
-                        current_scene_prompt = rewritten_part # Actualizamos el prompt para el siguiente intento
+                        current_scene_prompt = rewritten_part
+                        continue
                     else:
                         print("❌ No se pudo reescribir el prompt. Abortando esta imagen.")
-                        break # Salimos si la reescritura falla
+                        break
                 else:
-                    # Si es otro tipo de error, lo mostramos y rompemos el bucle
-                    print(f"❌ Error de API no relacionado con la moderación: {e}")
+                    print(f"❌ Error de API no relacionado con moderación: {e}")
                     all_images_successful = False
                     break
 
             except openai.APIError as e:
-                # Error del servidor (500, 502, 503, etc.) - es temporal, reintentar
                 if attempt < MAX_RETRIES - 1:
-                    wait_time = (attempt + 1) * 2  # 2s, 4s, 6s...
-                    print(f"⚠️ Error temporal del servidor OpenAI (intento {attempt + 1}/{MAX_RETRIES}). Reintentando en {wait_time}s...")
+                    wait_time = (attempt + 1) * 2
+                    print(f"⚠️ Error temporal del servidor (intento {attempt + 1}/{MAX_RETRIES}). Reintentando en {wait_time}s...")
                     time.sleep(wait_time)
-                    continue  # Reintentar
+                    continue
                 else:
-                    print(f"❌ Error del servidor OpenAI después de {MAX_RETRIES} intentos: {e}")
+                    print(f"❌ Error del servidor después de {MAX_RETRIES} intentos: {e}")
                     all_images_successful = False
                     break
 
             except requests.exceptions.RequestException as e:
-                # Error de red al descargar la imagen
                 if attempt < MAX_RETRIES - 1:
                     wait_time = (attempt + 1) * 2
                     print(f"⚠️ Error de red al descargar imagen (intento {attempt + 1}/{MAX_RETRIES}). Reintentando en {wait_time}s...")
@@ -350,9 +518,8 @@ def generate_visuals_for_script(script_text: str, project_path: str, client: Ope
                     break
 
             except RuntimeError as e:
-                # Error de validación (URL None, respuesta vacía, etc.)
                 print(f"❌ Error de validación: {e}")
-                print(f"   Modelo '{image_model}' podría no ser válido o no soportar este tamaño/calidad.")
+                print(f"   Modelo '{image_model}' podría no soportar este tamaño/calidad.")
                 all_images_successful = False
                 break
 
@@ -360,11 +527,11 @@ def generate_visuals_for_script(script_text: str, project_path: str, client: Ope
                 print(f"❌ Error inesperado al generar la imagen para la escena {i}: {e}")
                 all_images_successful = False
                 break
-        
+
         if not image_generated:
             print(f"🚫 Falló la generación de la imagen para la escena {i} después de {MAX_RETRIES} intentos.")
             all_images_successful = False
-            break # Detenemos todo el proceso si una imagen falla definitivamente
+            break  # detén el proceso si una imagen falla definitivamente
 
     if all_images_successful:
         print("✅ Todas las imágenes han sido generadas con éxito.")
@@ -372,6 +539,7 @@ def generate_visuals_for_script(script_text: str, project_path: str, client: Ope
     else:
         print("\n🚫 Proceso detenido debido a un error en la generación de imágenes.")
         return False
+
 
 
 # --- 3. FUNCIONES PARA MODO AUTOMÁTICO ---
@@ -647,6 +815,10 @@ def main():
             script_content = f.read().replace(".mp4", ".png")
             content = {"script": script_content}
 
+    # Menú interactivo de estilo visual
+    chosen_style = interactive_style_selection()
+    print(f"✅ Estilo seleccionado: {chosen_style}\n")
+
     # Llamada a la función de imágenes pasando el objeto 'client' para las reescrituras
     success = generate_visuals_for_script(
         content["script"],
@@ -654,8 +826,10 @@ def main():
         client,
         overwrite=args.overwrite_images,
         image_model=args.image_model,
-        image_quality=args.image_quality
+        image_quality=args.image_quality,
+        image_style=chosen_style,   # ← añadido
     )
+
     if not success:
         return
 
