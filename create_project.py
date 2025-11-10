@@ -629,7 +629,16 @@ def animate_images_with_replicate(project_path: str, overwrite: bool = False):
 
                 # El output es una URL al video generado
                 if output:
-                    video_url = output if isinstance(output, str) else output[0]
+                    # Manejar diferentes tipos de output de Replicate
+                    if isinstance(output, str):
+                        video_url = output
+                    elif hasattr(output, 'url'):  # FileOutput object
+                        video_url = output.url
+                    elif isinstance(output, list) and len(output) > 0:
+                        first_item = output[0]
+                        video_url = first_item if isinstance(first_item, str) else first_item.url
+                    else:
+                        raise RuntimeError(f"Formato de output no reconocido: {type(output)}")
 
                     # Descargar el video
                     print(f"   📥 Descargando video desde Replicate...")
