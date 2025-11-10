@@ -27,6 +27,18 @@ try:
 except Exception as e:
     raise RuntimeError(f"Error al inicializar el cliente de OpenAI: {e}")
 
+# Configuración de Replicate (opcional, solo si se usa --animate-images)
+REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN")
+replicate_client = None
+if REPLICATE_API_TOKEN:
+    try:
+        import replicate
+        replicate_client = replicate.Client(api_token=REPLICATE_API_TOKEN)
+    except ImportError:
+        print("⚠️  Advertencia: 'replicate' no está instalado. Ejecuta: pip install replicate")
+    except Exception as e:
+        print(f"⚠️  Advertencia: Error al inicializar Replicate: {e}")
+
 
 # --- 1. GENERACIÓN DE CONTENIDO CREATIVO CON OPENAI (gpt-5-mini) ---
 def generate_creative_content(idea: str):
@@ -541,6 +553,125 @@ def generate_visuals_for_script(
         return False
 
 
+# --- 2.5. ANIMACIÓN DE IMÁGENES CON REPLICATE ---
+def animate_images_with_replicate(project_path: str, overwrite: bool = False):
+    """
+    Anima las imágenes PNG del proyecto usando Stable Video Diffusion en Replicate.
+
+    Args:
+        project_path: Ruta al directorio del proyecto
+        overwrite: Si es True, regenera videos existentes. Si es False, los salta.
+
+    Returns:
+        True si todas las animaciones se generaron correctamente, False si hubo errores.
+    """
+    if not replicate_client:
+        print("\n❌ Error: Replicate no está configurado correctamente.")
+        print("   Asegúrate de:")
+        print("   1. Tener REPLICATE_API_TOKEN en tu archivo .env")
+        print("   2. Haber instalado: pip install replicate")
+        return False
+
+    print("\n🎬 Iniciando animación de imágenes con Replicate...")
+    print("   Modelo: wan-video/wan-2.5-i2v-fast (Alibaba Wan 2.5)")
+    print("   Duración: ~5 segundos por video")
+    print("   Resolución: Hasta 1080p")
+    print("   Costo estimado: Muy económico (optimizado para velocidad)\n")
+
+    images_path = os.path.join(project_path, "images")
+    if not os.path.exists(images_path):
+        print(f"❌ Error: No se encontró la carpeta {images_path}")
+        return False
+
+    # Buscar todas las imágenes PNG numeradas (1.png, 2.png, etc.)
+    image_files = []
+    for filename in os.listdir(images_path):
+        if re.match(r'^\d+\.png$', filename):
+            image_files.append(filename)
+
+    if not image_files:
+        print(f"❌ Error: No se encontraron imágenes PNG numeradas en {images_path}")
+        return False
+
+    # Ordenar por número
+    image_files.sort(key=lambda x: int(x.split('.')[0]))
+    print(f"📁 Encontradas {len(image_files)} imágenes para animar: {', '.join(image_files)}\n")
+
+    all_videos_successful = True
+    MAX_RETRIES = 3
+
+    for image_file in image_files:
+        image_number = image_file.split('.')[0]
+        image_path = os.path.join(images_path, image_file)
+        video_path = os.path.join(images_path, f"{image_number}_animated.mp4")
+
+        # Si ya existe y no queremos sobrescribir
+        if os.path.exists(video_path) and not overwrite:
+            print(f"✓ Video {image_number}_animated.mp4 ya existe, saltando animación.")
+            continue
+
+        print(f"🎥 Animando {image_file}...")
+        video_generated = False
+
+        for attempt in range(MAX_RETRIES):
+            try:
+                # Abrir la imagen y enviarla a Replicate
+                with open(image_path, "rb") as img_file:
+                    output = replicate_client.run(
+                        "wan-video/wan-2.5-i2v-fast",
+                        input={
+                            "image": img_file,
+                            "prompt": "Smooth cinematic camera movement, subtle motion, atmospheric"
+                        }
+                    )
+
+                # El output es una URL al video generado
+                if output:
+                    video_url = output if isinstance(output, str) else output[0]
+
+                    # Descargar el video
+                    print(f"   📥 Descargando video desde Replicate...")
+                    response = requests.get(video_url, timeout=120)
+                    response.raise_for_status()
+
+                    with open(video_path, "wb") as video_file:
+                        video_file.write(response.content)
+
+                    print(f"   ✔ Video guardado: {video_path}")
+                    video_generated = True
+                    break
+                else:
+                    raise RuntimeError("Replicate no devolvió una URL de video")
+
+            except Exception as e:
+                if attempt < MAX_RETRIES - 1:
+                    wait_time = (attempt + 1) * 3
+                    print(f"   ⚠️  Error (intento {attempt + 1}/{MAX_RETRIES}): {e}")
+                    print(f"   Reintentando en {wait_time}s...")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    print(f"   ❌ Error después de {MAX_RETRIES} intentos: {e}")
+                    all_videos_successful = False
+                    break
+
+        if not video_generated:
+            print(f"🚫 Falló la animación de {image_file}")
+            all_videos_successful = False
+            # Continuar con las siguientes imágenes en lugar de abortar completamente
+
+        # Pequeña pausa entre llamadas para no saturar la API
+        time.sleep(1)
+
+    if all_videos_successful:
+        print("\n✅ Todas las imágenes han sido animadas con éxito.")
+        print(f"   Los videos están en: {images_path}/")
+        print(f"   Archivos: 1_animated.mp4, 2_animated.mp4, etc.")
+        return True
+    else:
+        print("\n⚠️  Proceso completado con algunos errores en la animación.")
+        return False
+
 
 # --- 3. FUNCIONES PARA MODO AUTOMÁTICO ---
 def run_project_indexer():
@@ -721,6 +852,8 @@ def main():
                         help="Modelo de generación de imágenes. Si no se especifica, se mostrará un menú interactivo.")
     parser.add_argument("--image-quality", default=None,
                         help="Calidad de imagen: low/medium/high (GPT Image) o standard/hd (DALL-E). Si no se especifica, se mostrará un menú interactivo.")
+    parser.add_argument("--animate-images", action="store_true",
+                        help="Anima las imágenes generadas usando Stable Video Diffusion en Replicate (~$0.015 por video).")
     args = parser.parse_args()
 
     # --- MODO AUTOMÁTICO ---
@@ -832,6 +965,19 @@ def main():
 
     if not success:
         return
+
+    # Si se especificó --animate-images, animar las imágenes con Replicate
+    if args.animate_images:
+        animate_success = animate_images_with_replicate(
+            project_path,
+            overwrite=args.overwrite_images
+        )
+        if not animate_success:
+            print("\n⚠️  Advertencia: Hubo problemas al animar las imágenes.")
+            print("   Puedes intentar nuevamente con --animate-images --overwrite-images")
+            # No abortamos, continuamos con el proceso normal
+    else:
+        print("\n💡 Tip: Puedes animar las imágenes agregando --animate-images a tu comando")
 
     # El bloque que modificaba el guion aquí ya no es necesario,
     # porque nos aseguramos de que siempre trabaje con .png desde el principio.
