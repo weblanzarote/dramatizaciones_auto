@@ -623,7 +623,7 @@ def animate_images_with_replicate(project_path: str, overwrite: bool = False):
                             "image": img_file,
                             "prompt": "Smooth cinematic camera movement, subtle atmospheric motion",
                             "resolution": "480p",
-                            "duration": "5"
+                            "duration": 5
                         }
                     )
 
