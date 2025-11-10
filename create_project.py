@@ -61,8 +61,9 @@ def generate_creative_content(idea: str):
     [imagen:1.mp4]
     En los valles más profundos, se susurran leyendas.
 
-    - El guion completo debe tener entre 7 y 10 escenas.
-    - La longitud total debe ser de 200 a 250 palabras.
+    - El guion completo debe tener entre 5 y 6 escenas.
+    - La longitud total debe ser de 140 a 170 palabras.
+    - Cada escena debe tener un máximo de 25-30 palabras de narración.
     - Usa `[NARRADOR]` como hablante para todas las escenas.
     - IMPORTANTE: Las imágenes deben estar numeradas con DÍGITOS NUMÉRICOS: `[imagen:1.mp4]`, `[imagen:2.mp4]`, `[imagen:3.mp4]`, etc. NO uses palabras como "uno", "dos", "tres".
     - Los números en el TEXTO NARRATIVO deben estar escritos con letras (ej: "mil novecientos cincuenta y cinco"), pero los números en las etiquetas [imagen:N.mp4] deben ser dígitos (1, 2, 3...).
