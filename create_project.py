@@ -54,35 +54,46 @@ if REPLICATE_API_TOKEN:
         print(f"⚠️  Advertencia: Error al inicializar Replicate: {e}")
 
 
-# --- 1. GENERACIÓN DE CONTENIDO CREATIVO CON OPENAI (gpt-5-mini) ---
+# --- 1. GENERACIÓN DE CONTENIDO CREATIVO CON OPENAI (gpt-5.1) ---
 def generate_creative_content(idea: str):
-    """Llama a la API de OpenAI (gpt-5-mini) para obtener guion, post y texto para redes."""
-    print(f"🧠 Generando contenido creativo con OpenAI (gpt-5-mini) para la idea: '{idea}'...")
+    """Llama a la API de OpenAI (gpt-5.1) para obtener guion, post y texto para redes."""
+    print(f"🧠 Generando contenido creativo con OpenAI (gpt-5.1) para la idea: '{idea}'...")
 
-    # Prompt MEJORADO con instrucciones de formato estrictas para el guion
+    # Prompt optimizado para GPT-5.1 con énfasis en calidad narrativa y cinematográfica
     system_prompt = """
-    Eres un creador de contenido viral para la cuenta 'Relatos Extraordinarios'.
+    Eres un guionista experto especializado en narrativas de misterio, terror y contenido paranormal viral.
+    Creas historias cortas pero cinematográficas para 'Relatos Extraordinarios' con estructura de novela gráfica.
     Generarás un objeto JSON con tres claves: "script", "blog_article" y "social_post".
 
-    Reglas para "script":
-    - La estructura del guion es MUY ESTRICTA y debe seguir este formato por cada escena:
-    1.  Un tag de hablante en su propia línea (ej. `[NARRADOR]`).
-    2.  Un tag de imagen en la siguiente línea (ej. `[imagen:1.mp4]`).
-    3.  El texto descriptivo de la escena en las líneas siguientes.
-    4.  Debe haber una línea en blanco entre cada bloque de escena.
-    - Ejemplo de una escena:
+    Reglas para "script" - NARRATIVA CINEMATOGRÁFICA:
+
+    ESTRUCTURA TÉCNICA (MUY ESTRICTA):
+    - Cada escena sigue este formato exacto:
+      1. Tag de hablante en su propia línea: `[NARRADOR]`
+      2. Tag de imagen en la siguiente línea: `[imagen:1.mp4]` (DÍGITOS numéricos: 1, 2, 3...)
+      3. Texto descriptivo de la escena (15-20 palabras máximo)
+      4. Línea en blanco entre escenas
+
+    Ejemplo correcto:
     [NARRADOR]
     [imagen:1.mp4]
-    En los valles más profundos, se susurran leyendas.
+    En los valles más profundos, donde la niebla nunca se disipa, se susurran leyendas olvidadas.
 
-    - El guion completo debe tener entre 6 y 10 escenas.
-    - La longitud total debe ser de 100 a 150 palabras.
-    - Cada escena debe tener un máximo de 15-20 palabras de narración.
-    - Usa `[NARRADOR]` como hablante para todas las escenas.
-    - IMPORTANTE: Las imágenes deben estar numeradas con DÍGITOS NUMÉRICOS: `[imagen:1.mp4]`, `[imagen:2.mp4]`, `[imagen:3.mp4]`, etc. NO uses palabras como "uno", "dos", "tres".
-    - Los números en el TEXTO NARRATIVO deben estar escritos con letras (ej: "mil novecientos cincuenta y cinco"), pero los números en las etiquetas [imagen:N.mp4] deben ser dígitos (1, 2, 3...).
-    - El guion DEBE terminar obligatoriamente con la etiqueta `[CIERRE]` en su propia línea.
-    - Para mantener la coherencia visual, la historia debe centrarse en un único elemento o personaje recurrente (por ejemplo, un faro abandonado, una figura sombría, un objeto maldito). Las descripciones de las escenas deben reforzar este elemento central.
+    PARÁMETROS:
+    - Total: 6-10 escenas (100-150 palabras totales)
+    - Numeración: Usar DÍGITOS en tags [imagen:1.mp4] NO palabras
+    - Números en texto narrativo: Escribir con letras ("mil novecientos cincuenta")
+    - Finalizar obligatoriamente con tag `[CIERRE]` en su propia línea
+
+    CALIDAD NARRATIVA (GPT-5.1 - máxima creatividad):
+    - Construye una progresión dramática clara: presentación → tensión creciente → clímax → resolución/giro
+    - Cada escena debe ser VISUALMENTE EVOCADORA con detalles sensoriales concretos
+    - Mantén UN elemento o personaje central recurrente para coherencia visual (ej: figura sombría, objeto maldito)
+    - Las descripciones deben funcionar como direcciones de fotografía cinematográfica
+    - Crea atmósfera con detalles específicos: texturas, luces, sombras, elementos arquitectónicos
+    - Usa lenguaje cinematográfico: planos, ángulos, movimientos de cámara implícitos
+    - Cada escena debe poder imaginarse como un fotograma de una película de horror gótico
+    - Evita clichés: busca giros originales y detalles inesperados que generen intriga
     
     Reglas para "blog_article":
     - Debe expandir la historia del guion con un tono objetivo.
@@ -99,7 +110,7 @@ def generate_creative_content(idea: str):
     
     try:
         response = client.chat.completions.create(
-            model="gpt-5-mini",
+            model="gpt-5.1",
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": system_prompt},
