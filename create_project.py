@@ -451,8 +451,19 @@ def generate_visuals_for_script(
     all_images_successful = True
     MAX_RETRIES = 5  # intentos por imagen
 
-    # Variable para almacenar la referencia al estilo base
-    base_style_established = False
+    # Crear instrucción de consistencia global basada en el guion completo
+    # Esto asegura que haya personajes consistentes incluso si no aparecen en la primera imagen
+    consistency_context = f"""
+IMPORTANTE - CONSISTENCIA NARRATIVA:
+Esta imagen es parte de una secuencia de {len(scenes)} escenas que cuentan una historia única.
+Si hay personajes en esta narrativa, deben mantener exactamente la misma apariencia física,
+ropa, rasgos faciales y características en todas las escenas donde aparezcan.
+El estilo visual, iluminación, paleta de colores y atmósfera deben ser uniformes en toda la secuencia.
+
+Contexto narrativo completo:
+{' '.join([s.strip()[:100] for s in scenes[:3]])}...
+"""
+    print(f"   📖 Contexto: {len(scenes)} escenas en la narrativa")
 
     for i, scene_text in enumerate(scenes, 1):
         clean_text = scene_text.strip()
@@ -466,28 +477,17 @@ def generate_visuals_for_script(
         # Si ya existe y no queremos sobrescribir
         if os.path.exists(image_path) and not overwrite:
             print(f"   ✓ Imagen {i}.png ya existe, saltando generación.")
-            base_style_established = True  # Asumimos que el estilo ya está establecido
             continue
 
         image_generated = False
 
         for attempt in range(MAX_RETRIES):
             try:
-                # Construir prompt con estrategia de consistencia
-                if i == 1 or not base_style_established:
-                    # Primera imagen: establecer estilo base y personajes
-                    final_prompt = build_master_prompt(style_block, clean_text)
-                    final_prompt += "\n\nIMPORTANTE: Esta es la primera escena. Establece un estilo visual consistente y personajes que se mantendrán en todas las escenas siguientes."
-                    print(f"   → Imagen base (establece estilo y personajes)")
-                else:
-                    # Imágenes siguientes: mantener consistencia
-                    consistency_instruction = (
-                        "MANTÉN EXACTAMENTE EL MISMO ESTILO VISUAL Y LOS MISMOS PERSONAJES que en las imágenes anteriores. "
-                        "Los personajes deben tener la misma apariencia, ropa, y características faciales. "
-                        "El estilo artístico, paleta de colores e iluminación deben ser idénticos.\n\n"
-                    )
-                    final_prompt = consistency_instruction + build_master_prompt(style_block, clean_text)
-                    print(f"   → Manteniendo consistencia con imagen base")
+                # Construir prompt con contexto narrativo completo
+                # Todas las imágenes reciben el mismo contexto de consistencia
+                final_prompt = consistency_context + "\n\n" + build_master_prompt(style_block, clean_text)
+                final_prompt += f"\n\nEscena {i} de {len(scenes)} en la narrativa."
+                print(f"   → Escena {i}/{len(scenes)} con contexto narrativo completo")
 
                 # Llamar a Gemini API con configuración para generación de imágenes
                 response = gemini_client.models.generate_content(
@@ -517,10 +517,6 @@ def generate_visuals_for_script(
 
                 if not image_saved:
                     raise RuntimeError("Gemini no devolvió datos de imagen válidos en response.parts")
-
-                # Marcar que el estilo base ya está establecido
-                if i == 1 or not base_style_established:
-                    base_style_established = True
 
                 # Postproceso: Pixel Art (si el estilo lo indica)
                 if "pixel" in image_style.lower():
