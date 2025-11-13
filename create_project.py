@@ -423,6 +423,46 @@ def interactive_style_selection():
             print("❌ Introduce un número.")
 
 
+def extract_visual_consistency_brief(script_text: str, client: OpenAI) -> str:
+    """
+    Analiza el guión completo y extrae un brief visual de personajes y elementos recurrentes
+    para mantener consistencia absoluta entre todas las imágenes.
+    """
+    print("📋 Analizando guión para extraer brief de consistencia visual...")
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-5-mini",
+            messages=[
+                {"role": "system", "content": (
+                    "Eres un director de arte que crea 'visual briefs' para mantener consistencia en secuencias de imágenes.\n\n"
+                    "TAREA: Analiza el guión y extrae UNA DESCRIPCIÓN VISUAL CONCRETA Y ESPECÍFICA de:\n"
+                    "1. PERSONAJE PRINCIPAL (si hay): edad aproximada, género, ropa específica, rasgos físicos distintivos, accesorios\n"
+                    "2. VEHÍCULO/UBICACIÓN RECURRENTE (si hay): tipo exacto, características, color, estado\n"
+                    "3. ELEMENTOS VISUALES CONSISTENTES: objetos, atmósfera, época\n\n"
+                    "IMPORTANTE:\n"
+                    "- Sé ESPECÍFICO: 'hombre de 50 años, barba gris corta, gorra de marinero azul oscuro' NO 'un pescador'\n"
+                    "- Sé CONSISTENTE: si aparece un barco, especifica 'barca de pesca de 8 metros con motor fuera borda' NO 'barco'\n"
+                    "- Si no hay personajes claros, describe el elemento visual principal (edificio, objeto, lugar)\n"
+                    "- Mantén la descripción en 3-5 líneas, concisa pero específica\n\n"
+                    "FORMATO DE RESPUESTA:\n"
+                    "PERSONAJE: [descripción específica o 'N/A']\n"
+                    "ESCENARIO/VEHÍCULO: [descripción específica o 'N/A']\n"
+                    "ELEMENTOS CLAVE: [lista breve de elementos visuales recurrentes]"
+                )},
+                {"role": "user", "content": f"Analiza este guión y extrae el visual brief:\n\n{script_text}"}
+            ]
+        )
+
+        brief = response.choices[0].message.content.strip()
+        print(f"✅ Brief visual extraído:\n{brief}\n")
+        return brief
+
+    except Exception as e:
+        print(f"⚠️ No se pudo extraer brief visual: {e}")
+        return ""
+
+
 # --- 2. GENERACIÓN DE IMÁGENES CON GOOGLE GEMINI ---
 # --- VERSIÓN CON CONSISTENCIA DE PERSONAJES ---
 def generate_visuals_for_script(
@@ -467,19 +507,29 @@ def generate_visuals_for_script(
     all_images_successful = True
     MAX_RETRIES = 5  # intentos por imagen
 
-    # Crear instrucción de consistencia global basada en el guion completo
-    # Esto asegura que haya personajes consistentes incluso si no aparecen en la primera imagen
-    consistency_context = f"""
-IMPORTANTE - CONSISTENCIA NARRATIVA:
-Esta imagen es parte de una secuencia de {len(scenes)} escenas que cuentan una historia única.
-Si hay personajes en esta narrativa, deben mantener exactamente la misma apariencia física,
-ropa, rasgos faciales y características en todas las escenas donde aparezcan.
-El estilo visual, iluminación, paleta de colores y atmósfera deben ser uniformes en toda la secuencia.
+    # PASO 1: Extraer brief visual específico del guión completo
+    visual_brief = extract_visual_consistency_brief(script_text, client)
 
-Contexto narrativo completo:
-{' '.join([s.strip()[:100] for s in scenes[:3]])}...
+    # PASO 2: Crear instrucción de consistencia REFORZADA con brief específico
+    consistency_context = f"""
+CONSISTENCIA VISUAL ABSOLUTA - OBLIGATORIO:
+
+Esta imagen es parte de una secuencia de {len(scenes)} escenas. TODOS los elementos visuales recurrentes
+deben mantenerse IDÉNTICOS en cada escena.
+
+{visual_brief}
+
+INSTRUCCIONES CRÍTICAS:
+- Si el personaje está definido arriba, DEBE aparecer con EXACTAMENTE esa apariencia en TODAS las escenas donde aparezca
+- Si el vehículo/escenario está definido arriba, DEBE ser EXACTAMENTE ese en TODAS las escenas
+- NO cambies: ropa, accesorios, tipo de barco, edad aparente, rasgos faciales, color de ojos/pelo
+- Mantén el mismo estilo visual, iluminación, paleta de colores en toda la secuencia
+- Si algo no está especificado en el brief, manténlo coherente con las demás imágenes de la secuencia
+
+Contexto de la historia completa:
+{' '.join([s.strip()[:80] for s in scenes[:3]])}...
 """
-    print(f"   📖 Contexto: {len(scenes)} escenas en la narrativa")
+    print(f"   📖 Brief de consistencia aplicado a {len(scenes)} escenas")
 
     for i, scene_text in enumerate(scenes, 1):
         clean_text = scene_text.strip()
