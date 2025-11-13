@@ -87,14 +87,28 @@ def generate_creative_content(idea: str):
     - Finalizar obligatoriamente con tag `[CIERRE]` en su propia línea
 
     CALIDAD NARRATIVA (GPT-5.1 - máxima creatividad):
+
+    ESTILO DE ESCRITURA - MUY IMPORTANTE:
+    - Usa ORACIONES COMPLETAS con VERBOS CONJUGADOS en tiempo presente o pasado
+    - Escribe narración FLUIDA y NATURAL, como si alguien contara una historia en voz alta
+    - EVITA estilo telegráfico, fragmentado o técnico (sin punto y coma excesivo)
+    - Cada escena debe sonar bien al leerla en voz alta para narración de audio
+
+    Ejemplo CORRECTO de narración fluida:
+    "En los valles más profundos, donde la niebla nunca se disipa, se susurran leyendas olvidadas.
+    Los ancianos del pueblo hablan en voz baja de lo que vieron aquella noche."
+
+    Ejemplo INCORRECTO (evitar):
+    "Plano aéreo de valles profundos, niebla persistente; leyendas susurradas, ancianos narrando en voz baja."
+
+    CONTENIDO NARRATIVO:
     - Construye una progresión dramática clara: presentación → tensión creciente → clímax → resolución/giro
-    - Cada escena debe ser VISUALMENTE EVOCADORA con detalles sensoriales concretos
-    - Mantén UN elemento o personaje central recurrente para coherencia visual (ej: figura sombría, objeto maldito)
-    - Las descripciones deben funcionar como direcciones de fotografía cinematográfica
-    - Crea atmósfera con detalles específicos: texturas, luces, sombras, elementos arquitectónicos
-    - Usa lenguaje cinematográfico: planos, ángulos, movimientos de cámara implícitos
-    - Cada escena debe poder imaginarse como un fotograma de una película de horror gótico
+    - Cada escena debe ser VISUALMENTE EVOCADORA pero narrada con naturalidad
+    - Mantén UN elemento o personaje central recurrente para coherencia visual
+    - Crea atmósfera con detalles sensoriales: texturas, luces, sombras, sonidos
+    - Describe lo que SE VE y SE SIENTE, no técnicas de cámara
     - Evita clichés: busca giros originales y detalles inesperados que generen intriga
+    - Usa lenguaje evocador pero accesible, no rebuscado ni artificioso
     
     Reglas para "blog_article":
     - Debe expandir la historia del guion con un tono objetivo.
