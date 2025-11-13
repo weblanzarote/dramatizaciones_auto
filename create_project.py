@@ -13,6 +13,8 @@ import textwrap
 from PIL import Image
 from openai import OpenAI
 import openai
+from google import genai
+from google.genai import types
 
 # --- CONFIGURACIÓN INICIAL ---
 # Cargar claves de API de forma segura desde el archivo .env
@@ -21,11 +23,23 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     raise ValueError("No se encontró la OPENAI_API_KEY. Asegúrate de que tu archivo .env está configurado.")
 
-# Inicializamos el cliente de OpenAI que se usará para texto e imágenes
+# Inicializamos el cliente de OpenAI que se usará para texto
 try:
     client = OpenAI(api_key=OPENAI_API_KEY)
 except Exception as e:
     raise RuntimeError(f"Error al inicializar el cliente de OpenAI: {e}")
+
+# Configuración de Google Gemini para generación de imágenes
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise ValueError("No se encontró la GEMINI_API_KEY. Asegúrate de que tu archivo .env está configurado.")
+
+# Inicializamos el cliente de Gemini para generación de imágenes
+try:
+    gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+    print("✅ Cliente de Google Gemini inicializado correctamente")
+except Exception as e:
+    raise RuntimeError(f"Error al inicializar el cliente de Gemini: {e}")
 
 # Configuración de Replicate (opcional, solo si se usa --animate-images)
 REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN")
@@ -367,53 +381,40 @@ def interactive_style_selection():
             print("❌ Introduce un número.")
 
 
-# --- 2. GENERACIÓN DE IMÁGENES ESTÁTICAS CON OPENAI ---
-# --- VERSIÓN MEJORADA CON REINTENTO AUTOMÁTICO ---
+# --- 2. GENERACIÓN DE IMÁGENES CON GOOGLE GEMINI ---
+# --- VERSIÓN CON CONSISTENCIA DE PERSONAJES ---
 def generate_visuals_for_script(
     script_text: str,
     project_path: str,
-    client: OpenAI,
+    client: OpenAI,  # Mantenemos para compatibilidad (usado para reescrituras)
     overwrite: bool = False,
-    image_model: str = "dall-e-3",
+    image_model: str = "gemini-2.5-flash-image",
     image_quality: str = "standard",
     image_style: str = None,
 ):
     """
-    Genera imágenes para el guion con un sistema de reintento automático
-    que reescribe los prompts bloqueados por el sistema de seguridad,
-    usando un estilo visual seleccionable.
+    Genera imágenes para el guion usando Google Gemini con consistencia de personajes.
+
+    La primera imagen establece el estilo visual y personajes base.
+    Las imágenes siguientes mantienen automáticamente la consistencia visual.
 
     Args:
         script_text: El texto del guion con las etiquetas [imagen:N.png]
         project_path: Ruta al directorio del proyecto
-        client: Cliente de OpenAI
+        client: Cliente de OpenAI (usado para reescrituras de prompts si es necesario)
         overwrite: Si es True, regenera imágenes existentes. Si es False, las salta.
-        image_model: Modelo de generación (gpt-image-1-mini, gpt-image-1, dall-e-3, dall-e-2)
-        image_quality: Calidad (low/medium/high para GPT Image; standard/hd para DALL·E)
+        image_model: Modelo de Gemini (gemini-2.5-flash-image o gemini-2.0-flash-exp)
+        image_quality: No usado en Gemini, mantenido para compatibilidad
         image_style: Nombre del estilo a aplicar (de STYLE_NAMES). Si None, usa el primero.
     """
-    print(f"🎨 Empezando la generación de imágenes con reintento automático...")
-    print(f"   Modelo: {image_model} | Calidad: {image_quality}")
-
-    # Tamaños recomendados según modelo (vertical por defecto)
-    size_map = {
-        "gpt-image-1-mini": "1024x1536",  # válido para mini
-        "gpt-image-1":      "1024x1536",
-        "dall-e-3":         "1024x1792",
-        "dall-e-2":         "1024x1024",
-    }
-    image_size = size_map.get(image_model, "1024x1536")
-    print(f"   Tamaño: {image_size}")
+    print(f"🎨 Generando imágenes con Google Gemini (consistencia de personajes)...")
+    print(f"   Modelo: {image_model}")
 
     # Estilo elegido
     if not image_style:
         image_style = STYLE_NAMES[0]
     style_block = next((b for n, b in STYLE_PRESETS if n == image_style), STYLE_PRESETS[0][1])
     print(f"   Estilo: {image_style}")
-
-    # Extra: fondo transparente automáticamente solo para modelos GPT Image si lo quisieras
-    supports_background = image_model.startswith("gpt-image-1")
-    transparent_bg = False  # cámbialo a True si quieres PNG transparente para overlays
 
     # Extraer escenas
     scenes = re.findall(r'\[imagen:\d+\.png\]\s*(.*?)(?=\n\s*\[|$)', script_text, re.DOTALL)
@@ -423,6 +424,9 @@ def generate_visuals_for_script(
 
     all_images_successful = True
     MAX_RETRIES = 5  # intentos por imagen
+
+    # Variable para almacenar la referencia al estilo base
+    base_style_established = False
 
     for i, scene_text in enumerate(scenes, 1):
         clean_text = scene_text.strip()
@@ -436,118 +440,123 @@ def generate_visuals_for_script(
         # Si ya existe y no queremos sobrescribir
         if os.path.exists(image_path) and not overwrite:
             print(f"   ✓ Imagen {i}.png ya existe, saltando generación.")
+            base_style_established = True  # Asumimos que el estilo ya está establecido
             continue
 
-        # Prompt específico de la escena (mutable si hay reescrituras por moderación)
-        current_scene_prompt = f"{clean_text}"
         image_generated = False
 
         for attempt in range(MAX_RETRIES):
             try:
-                # Construir prompt final con el estilo
-                final_prompt = build_master_prompt(style_block, current_scene_prompt)
-
-                # Preparar kwargs (evita enviar background=None)
-                kwargs = {
-                    "model": image_model,
-                    "prompt": final_prompt,
-                    "size": image_size,
-                    "quality": image_quality,
-                    "n": 1,
-                }
-                if supports_background and transparent_bg:
-                    kwargs["background"] = "transparent"
-
-                response = client.images.generate(**kwargs)
-
-                # Validar datos
-                if not response.data or len(response.data) == 0:
-                    raise RuntimeError("La respuesta de la API no contiene datos de imagen")
-
-                image_data = response.data[0]
-                image_url = getattr(image_data, "url", None)
-                b64_json = getattr(image_data, "b64_json", None)
-
-                if image_url:
-                    r = requests.get(image_url, timeout=60)
-                    r.raise_for_status()
-                    with open(image_path, "wb") as f:
-                        f.write(r.content)
-                    image_generated = True
-
-                elif b64_json:
-                    image_bytes = base64.b64decode(b64_json)
-                    with open(image_path, "wb") as f:
-                        f.write(image_bytes)
-                    image_generated = True
-
+                # Construir prompt con estrategia de consistencia
+                if i == 1 or not base_style_established:
+                    # Primera imagen: establecer estilo base y personajes
+                    final_prompt = build_master_prompt(style_block, clean_text)
+                    final_prompt += "\n\nIMPORTANTE: Esta es la primera escena. Establece un estilo visual consistente y personajes que se mantendrán en todas las escenas siguientes."
+                    print(f"   → Imagen base (establece estilo y personajes)")
                 else:
-                    raise RuntimeError(f"La API no devolvió ni url ni b64_json. Respuesta: {image_data}")
+                    # Imágenes siguientes: mantener consistencia
+                    consistency_instruction = (
+                        "MANTÉN EXACTAMENTE EL MISMO ESTILO VISUAL Y LOS MISMOS PERSONAJES que en las imágenes anteriores. "
+                        "Los personajes deben tener la misma apariencia, ropa, y características faciales. "
+                        "El estilo artístico, paleta de colores e iluminación deben ser idénticos.\n\n"
+                    )
+                    final_prompt = consistency_instruction + build_master_prompt(style_block, clean_text)
+                    print(f"   → Manteniendo consistencia con imagen base")
+
+                # Llamar a Gemini API
+                response = gemini_client.models.generate_content(
+                    model=image_model,
+                    contents=final_prompt
+                )
+
+                # Gemini devuelve imágenes en response.candidates[0].content.parts
+                # Buscar la parte que contiene la imagen
+                image_data = None
+                if hasattr(response, 'candidates') and len(response.candidates) > 0:
+                    candidate = response.candidates[0]
+                    if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts'):
+                        for part in candidate.content.parts:
+                            # Gemini puede devolver inline_data con mime_type y data
+                            if hasattr(part, 'inline_data'):
+                                image_data = part.inline_data.data
+                                break
+                            # O puede devolver un URI
+                            elif hasattr(part, 'file_data') and hasattr(part.file_data, 'file_uri'):
+                                # Descargar desde URI
+                                file_uri = part.file_data.file_uri
+                                r = requests.get(file_uri, timeout=60)
+                                r.raise_for_status()
+                                image_data = r.content
+                                break
+
+                if not image_data:
+                    raise RuntimeError("Gemini no devolvió datos de imagen válidos")
+
+                # Guardar la imagen
+                # Si image_data es base64, decodificar
+                if isinstance(image_data, str):
+                    image_bytes = base64.b64decode(image_data)
+                else:
+                    image_bytes = image_data
+
+                with open(image_path, "wb") as f:
+                    f.write(image_bytes)
+
+                # Marcar que el estilo base ya está establecido
+                if i == 1 or not base_style_established:
+                    base_style_established = True
 
                 # Postproceso: Pixel Art (si el estilo lo indica)
                 if "pixel" in image_style.lower():
-                    # Ajusta small_edge para más/menos “chunky”
                     pixelize_image(image_path, small_edge=256)
                     print("   ↳ postproceso: pixelize aplicado (downscale + NEAREST)")
 
                 print(f"   ✔ Guardada: {image_path}")
+                image_generated = True
                 break  # éxito → sal del bucle de reintentos
 
-            except openai.BadRequestError as e:
-                if getattr(e, "code", None) == "moderation_blocked":
-                    print(f"⚠️ Prompt bloqueado (intento {attempt + 1}). Reescribiendo...")
-                    rewritten_part = rewrite_prompt_for_safety(current_scene_prompt, client)
-                    if rewritten_part:
-                        current_scene_prompt = rewritten_part
+            except Exception as e:
+                error_message = str(e)
+
+                # Manejo de errores específicos de Gemini
+                if "SAFETY" in error_message or "BLOCKED" in error_message:
+                    print(f"⚠️ Prompt bloqueado por seguridad (intento {attempt + 1}). Reescribiendo...")
+                    rewritten_prompt = rewrite_prompt_for_safety(clean_text, client)
+                    if rewritten_prompt:
+                        clean_text = rewritten_prompt
                         continue
                     else:
                         print("❌ No se pudo reescribir el prompt. Abortando esta imagen.")
+                        all_images_successful = False
                         break
-                else:
-                    print(f"❌ Error de API no relacionado con moderación: {e}")
-                    all_images_successful = False
-                    break
 
-            except openai.APIError as e:
-                if attempt < MAX_RETRIES - 1:
+                elif "RECITATION" in error_message:
+                    print(f"⚠️ Contenido bloqueado por recitación (intento {attempt + 1}). Modificando prompt...")
+                    clean_text = f"Create an original interpretation of: {clean_text}"
+                    continue
+
+                elif attempt < MAX_RETRIES - 1:
                     wait_time = (attempt + 1) * 2
-                    print(f"⚠️ Error temporal del servidor (intento {attempt + 1}/{MAX_RETRIES}). Reintentando en {wait_time}s...")
+                    print(f"⚠️ Error temporal (intento {attempt + 1}/{MAX_RETRIES}): {error_message[:100]}")
+                    print(f"   Reintentando en {wait_time}s...")
                     time.sleep(wait_time)
                     continue
                 else:
-                    print(f"❌ Error del servidor después de {MAX_RETRIES} intentos: {e}")
+                    print(f"❌ Error después de {MAX_RETRIES} intentos: {error_message}")
                     all_images_successful = False
                     break
-
-            except requests.exceptions.RequestException as e:
-                if attempt < MAX_RETRIES - 1:
-                    wait_time = (attempt + 1) * 2
-                    print(f"⚠️ Error de red al descargar imagen (intento {attempt + 1}/{MAX_RETRIES}). Reintentando en {wait_time}s...")
-                    time.sleep(wait_time)
-                    continue
-                else:
-                    print(f"❌ Error de red después de {MAX_RETRIES} intentos: {e}")
-                    all_images_successful = False
-                    break
-
-            except RuntimeError as e:
-                print(f"❌ Error de validación: {e}")
-                print(f"   Modelo '{image_model}' podría no soportar este tamaño/calidad.")
-                all_images_successful = False
-                break
-
-            except Exception as e:
-                print(f"❌ Error inesperado al generar la imagen para la escena {i}: {e}")
-                all_images_successful = False
-                break
 
         if not image_generated:
             print(f"🚫 Falló la generación de la imagen para la escena {i} después de {MAX_RETRIES} intentos.")
             all_images_successful = False
             break  # detén el proceso si una imagen falla definitivamente
 
+        # Pequeña pausa entre imágenes para no saturar la API
+        time.sleep(1)
+
     if all_images_successful:
-        print("✅ Todas las imágenes han sido generadas con éxito.")
+        print("✅ Todas las imágenes han sido generadas con éxito con Google Gemini.")
+        print("   Las imágenes mantienen consistencia visual entre escenas.")
         return True
     else:
         print("\n🚫 Proceso detenido debido a un error en la generación de imágenes.")
@@ -860,10 +869,10 @@ def main():
     parser.add_argument("--overwrite-images", action="store_true", help="Regenera todas las imágenes aunque ya existan.")
     parser.add_argument("--force-video", action="store_true", help="Regenera el video aunque ya exista.")
     parser.add_argument("--image-model", default=None,
-                        choices=["gpt-image-1-mini", "gpt-image-1", "dall-e-3", "dall-e-2"],
-                        help="Modelo de generación de imágenes. Si no se especifica, se mostrará un menú interactivo.")
+                        choices=["gemini-2.5-flash-image", "gemini-2.0-flash-exp"],
+                        help="Modelo de generación de imágenes Google Gemini. Default: gemini-2.5-flash-image (mejor consistencia)")
     parser.add_argument("--image-quality", default=None,
-                        help="Calidad de imagen: low/medium/high (GPT Image) o standard/hd (DALL-E). Si no se especifica, se mostrará un menú interactivo.")
+                        help="Mantenido por compatibilidad, no usado con Gemini.")
     parser.add_argument("--animate-images", action="store_true",
                         help="Anima las imágenes generadas usando Seedance 1.0 Pro Fast (480p, ~$0.075 por video de 5s).")
     args = parser.parse_args()
@@ -909,9 +918,9 @@ def main():
 
     # Si no se especificaron modelo y calidad, usar valores por defecto
     if args.image_model is None or args.image_quality is None:
-        args.image_model = "gpt-image-1-mini"
-        args.image_quality = "medium"
-        print(f"📸 Usando modelo de imagen por defecto: {args.image_model} ({args.image_quality})")
+        args.image_model = "gemini-2.5-flash-image"
+        args.image_quality = "standard"
+        print(f"📸 Usando modelo de imagen por defecto: Google {args.image_model}")
 
     project_path = args.project_name
     images_path = os.path.join(project_path, "images")
