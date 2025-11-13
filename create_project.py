@@ -61,8 +61,9 @@ def generate_creative_content(idea: str):
     [imagen:1.mp4]
     En los valles más profundos, se susurran leyendas.
 
-    - El guion completo debe tener entre 7 y 10 escenas.
-    - La longitud total debe ser de 200 a 250 palabras.
+    - El guion completo debe tener entre 6 y 10 escenas.
+    - La longitud total debe ser de 100 a 150 palabras.
+    - Cada escena debe tener un máximo de 15-20 palabras de narración.
     - Usa `[NARRADOR]` como hablante para todas las escenas.
     - IMPORTANTE: Las imágenes deben estar numeradas con DÍGITOS NUMÉRICOS: `[imagen:1.mp4]`, `[imagen:2.mp4]`, `[imagen:3.mp4]`, etc. NO uses palabras como "uno", "dos", "tres".
     - Los números en el TEXTO NARRATIVO deben estar escritos con letras (ej: "mil novecientos cincuenta y cinco"), pero los números en las etiquetas [imagen:N.mp4] deben ser dígitos (1, 2, 3...).
@@ -603,11 +604,11 @@ def animate_images_with_replicate(project_path: str, overwrite: bool = False):
     for image_file in image_files:
         image_number = image_file.split('.')[0]
         image_path = os.path.join(images_path, image_file)
-        video_path = os.path.join(images_path, f"{image_number}_animated.mp4")
+        video_path = os.path.join(images_path, f"{image_number}.mp4")
 
         # Si ya existe y no queremos sobrescribir
         if os.path.exists(video_path) and not overwrite:
-            print(f"✓ Video {image_number}_animated.mp4 ya existe, saltando animación.")
+            print(f"✓ Video {image_number}.mp4 ya existe, saltando animación.")
             continue
 
         print(f"🎥 Animando {image_file}...")
@@ -623,13 +624,22 @@ def animate_images_with_replicate(project_path: str, overwrite: bool = False):
                             "image": img_file,
                             "prompt": "Smooth cinematic camera movement, subtle atmospheric motion",
                             "resolution": "480p",
-                            "duration": "5"
+                            "duration": 5
                         }
                     )
 
                 # El output es una URL al video generado
                 if output:
-                    video_url = output if isinstance(output, str) else output[0]
+                    # Manejar diferentes tipos de output de Replicate
+                    if isinstance(output, str):
+                        video_url = output
+                    elif hasattr(output, 'url'):  # FileOutput object
+                        video_url = output.url
+                    elif isinstance(output, list) and len(output) > 0:
+                        first_item = output[0]
+                        video_url = first_item if isinstance(first_item, str) else first_item.url
+                    else:
+                        raise RuntimeError(f"Formato de output no reconocido: {type(output)}")
 
                     # Descargar el video
                     print(f"   📥 Descargando video desde Replicate...")
@@ -668,7 +678,7 @@ def animate_images_with_replicate(project_path: str, overwrite: bool = False):
     if all_videos_successful:
         print("\n✅ Todas las imágenes han sido animadas con éxito.")
         print(f"   Los videos están en: {images_path}/")
-        print(f"   Archivos: 1_animated.mp4, 2_animated.mp4, etc.")
+        print(f"   Archivos: 1.mp4, 2.mp4, 3.mp4, etc.")
         return True
     else:
         print("\n⚠️  Proceso completado con algunos errores en la animación.")
@@ -978,6 +988,20 @@ def main():
             print("\n⚠️  Advertencia: Hubo problemas al animar las imágenes.")
             print("   Puedes intentar nuevamente con --animate-images --overwrite-images")
             # No abortamos, continuamos con el proceso normal
+        else:
+            # Actualizar texto.txt para usar .mp4 en lugar de .png
+            script_file = os.path.join(project_path, "texto.txt")
+            if os.path.exists(script_file):
+                with open(script_file, "r", encoding="utf-8") as f:
+                    script_content = f.read()
+
+                # Reemplazar .png por .mp4
+                updated_content = script_content.replace(".png]", ".mp4]")
+
+                with open(script_file, "w", encoding="utf-8") as f:
+                    f.write(updated_content)
+
+                print("\n✅ Archivo texto.txt actualizado: .png → .mp4")
     else:
         print("\n💡 Tip: Puedes animar las imágenes agregando --animate-images a tu comando")
 

@@ -136,4 +136,14 @@ Por favor, utiliza estas descripciones como una referencia fija e inalterable pa
 
 --- AUTOMATIZADOR ---
 
-python create_project.py --idea "El vuelo 914 de Pan Am: La leyenda de un avión que despegó en mil novecientos cincuenta y cinco y aterrizó treinta y siete años después en Caracas, Venezuela. Los pasajeros no habían envejecido un solo día y no tenían ni idea de lo que había sucedido. Aunque es una leyenda urbana, podemos narrarla como si fuera un expediente clasificado recién descubierto." --project-name "191_VUELO914"
+python create_project.py --idea "Noche de equinoccio en la ermita templaria: luz que traza un pentagrama, un óculo que nombra y una losa que late. Respeta las tres reglas." --project-name "209_NOMBREPROHIBIDO" --animate-images
+
+--- AUTOMATIZADOR TOTAL---
+python create_project.py
+
+
+--- AUTOMATIZADOR TOTAL CON ANIMACION DE IMAGENES ---
+python create_project.py --animate-images
+
+⚠️  Advertencia: Hubo problemas al animar las imágenes.
+   Puedes intentar nuevamente con --animate-images --overwrite-images

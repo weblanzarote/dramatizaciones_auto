@@ -1,6 +1,6 @@
 --- ÍNDICE DE PROYECTOS 'RELATOS EXTRAORDINARIOS' ---
 
-Total de proyectos indexados: 189
+Total de proyectos indexados: 204
 --------------------------------------------------
 
 1_SONRISA: Las tres de la mañana. Las farolas de sodio bañan la calle en un solitario resplandor anaranjado. Javier camina, con las manos en los bolsillos y la cabeza gacha. El eco de sus propios pasos es el único sonido. Solo quiere llegar a casa.
@@ -188,10 +188,25 @@ Total de proyectos indexados: 189
 190_CRIMENFUENCARRAL: Madrid, año mil ochocientos ochenta y ocho. Una noche de julio, en la céntrica calle Fuencarral, un denso humo y el olor a petróleo alertan a los vecinos.
 191_EVENTOTUNGUSKA: Mañana del treinta de junio de mil novecientos ocho. En la remota región de Tunguska, en Siberia, los pastores locales comienzan su día.
 192_PHINEASGAGE: Año mil ochocientos cuarenta y ocho. Phineas Gage es un respetado capataz del ferrocarril en Vermont, conocido por ser amable y eficiente.
-193_: No se encontró texto de resumen.
-194_: No se encontró texto de resumen.
-195_: No se encontró texto de resumen.
-196_: No se encontró texto de resumen.
+193_BELCHITE: Hay lugares en España marcados por la historia. Y luego, está Belchite. Un pueblo fantasma en Zaragoza que no fue abandonado por la pobreza, sino por el horror.
+194_SANATORIOALFAGUARA: En lo alto de la Sierra de la Alfaguara, en Granada, el aire es puro y helado. Aquí, lejos del mundo, se alza un gigante de hormigón devorado por el bosque.
+195_CRIMENGALINDOS: Andalucía, mil novecientos setenta y cinco. En el municipio de Paradas, Sevilla, se encuentra el cortijo de Los Galindos. Un lugar de trabajo y sol, que estaba a punto de convertirse en el escenario de un horror imborrable.
+196_TEATROLICEU: En el corazón de La Rambla de Barcelona, se alza el Gran Teatro del Liceu. Es un símbolo mundial de la ópera, el lujo y la cultura.
+197_POLTERGEISTERRENTERIA: Errenteria, Gipuzkoa, a principios de los años ochenta. En el barrio obrero de Fanderia, una familia normal, los Bado, está a punto de vivir un infierno en su propio hogar.
+198_ARCHIVO001: Desde la sombra, vigilamos. Catalogamos lo imposible. Bienvenidos al Archivo.
+199_MONASTERIOINVISIBLE: En las montañas de León, hay un monasterio que aparece en mapas antiguos... pero hoy nadie sabe dónde está.
+200_LAFOTOGRAFIA: En un mercadillo de Sevilla, Clara compró una cámara antigua.
+201_ELPASAJERO22: El autobús 22 de la línea interurbana sale cada noche a las 23:15.
+202_ ELFARO: Costa gallega. Desde el acantilado se alza un faro apagado desde 1963.
+203_MISTERIOSDEGOOGLEEARTH: Todo empezó con una captura de Google Earth.
+204_CASTILLOCARDONA: En lo alto de una colina, se alza el majestuoso Castillo de Cardona, un símbolo de la historia de Cataluña.
+205_SOMBRADELAVERA: En el corazón del desolado pueblo de Villanueva de la Vera, se alza un antiguo monasterio, símbolo de misterio y tristeza.
+206_ISLADELCORO: La ría de Vigo traga el día y escupe un espejo de plomo; la isla de San Simón se recorta como un dedo acusado en el horizonte.
+207_ITEMISSAEST: En agosto, el pantano de Mediano baja y el campanario emerge como un dedo acusador desde un mundo ahogado.
+208_OCULODESFILADERO: La luna recorta una dentadura de piedra entre los pinos. En el corazón del desfiladero se alza la ermita templaria, nave de arenisca con un óculo como ojo abierto al cielo.
+209_NOMBREPROHIBIDO: En Wamba, Valladolid, a medianoche la humedad de la iglesia románica se pega a la piel como advertencia frente al osario: miles de cráneos apilados, una pared de mandíbulas que no mienten.
+210_TOLEDOMEDIANOCHE: Toledo a medianoche; el Tajo empuja un aliento frío por las callejas. Busco la puerta modesta.
+211_PRINCIPEFELIZ: La estatua dorada del Príncipe Feliz llora al ver la ciudad miserable.
 
 
 ==================================================
