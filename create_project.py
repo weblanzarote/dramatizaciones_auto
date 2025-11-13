@@ -771,17 +771,18 @@ def generate_project_name_from_idea(idea_text: str, client: OpenAI):
 
     try:
         response = client.chat.completions.create(
-            model="gpt-5-nano",
+            model="gpt-5-mini",
             messages=[
                 {"role": "system", "content": (
-                    "Eres un asistente que genera nombres cortos de proyecto. "
+                    "Eres un asistente creativo que genera nombres únicos y memorables para proyectos de misterio y terror. "
                     "Dado un texto descriptivo, debes crear un nombre corto de 1-3 palabras "
-                    "en MAYÚSCULAS que capture la esencia del contenido. "
-                    "El nombre debe ser memorable, descriptivo y apropiado para un proyecto de misterio/paranormal. "
+                    "en MAYÚSCULAS que capture la esencia específica del contenido. "
+                    "El nombre debe ser ÚNICO, evocador y apropiado para contenido paranormal/misterioso. "
+                    "Evita nombres genéricos. Busca algo específico que distinga esta historia. "
                     "RESPONDE SOLO CON EL NOMBRE, SIN EXPLICACIONES. "
-                    "Ejemplos: METROMADRID, CASTILLOCARDONA, PALACIOLINARES, HOMBREPEZ"
+                    "Ejemplos: METROMADRID, CASTILLOCARDONA, PALACIOLINARES, HOMBREPEZ, CORTIJOMALDITO"
                 )},
-                {"role": "user", "content": f"Genera un nombre de proyecto para: {idea_text}"}
+                {"role": "user", "content": f"Genera un nombre único de proyecto para: {idea_text}"}
             ]
         )
 
