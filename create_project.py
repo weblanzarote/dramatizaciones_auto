@@ -80,7 +80,8 @@ def generate_creative_content(idea: str):
     En los valles más profundos, donde la niebla nunca se disipa, se susurran leyendas.
 
     PARÁMETROS:
-    - Total: 7-8 escenas (90-120 palabras totales)
+    - Total: 6-10 escenas (flexibilidad narrativa para contar bien la historia)
+    - Total de palabras: 80-140 palabras
     - Duración objetivo: ~60 segundos de video final
     - Numeración: Usar DÍGITOS en tags [imagen:1.mp4] NO palabras
     - Números en texto narrativo: Escribir con letras ("mil novecientos cincuenta")
@@ -611,9 +612,9 @@ def animate_images_with_replicate(project_path: str, overwrite: bool = False):
 
     print("\n🎬 Iniciando animación de imágenes con Replicate...")
     print("   Modelo: bytedance/seedance-1-pro-fast")
-    print("   Duración: 8 segundos por video (optimizado para sincronización)")
+    print("   Duración: 6 segundos por video (balance costo/calidad)")
     print("   Resolución: 480p (óptima para redes sociales)")
-    print("   Costo: $0.015/segundo → ~$0.84-0.96 por proyecto de 7-8 videos 🎯\n")
+    print("   Costo: $0.015/segundo → ~$0.81-0.99 por proyecto de 6-10 videos 🎯\n")
 
     images_path = os.path.join(project_path, "images")
     if not os.path.exists(images_path):
@@ -660,7 +661,7 @@ def animate_images_with_replicate(project_path: str, overwrite: bool = False):
                             "image": img_file,
                             "prompt": "Smooth cinematic camera movement, subtle atmospheric motion",
                             "resolution": "480p",
-                            "duration": 8  # 8 segundos para mejor sincronización con audio
+                            "duration": 6  # 6 segundos - balance entre costo y flexibilidad narrativa
                         }
                     )
 
@@ -902,7 +903,7 @@ def main():
     parser.add_argument("--image-quality", default=None,
                         help="Mantenido por compatibilidad, no usado con Gemini.")
     parser.add_argument("--animate-images", action="store_true",
-                        help="Anima las imágenes generadas usando Seedance 1.0 Pro Fast (480p, 8s, ~$0.12 por video).")
+                        help="Anima las imágenes generadas usando Seedance 1.0 Pro Fast (480p, 6s, ~$0.09 por video).")
     args = parser.parse_args()
 
     # --- MODO AUTOMÁTICO ---
