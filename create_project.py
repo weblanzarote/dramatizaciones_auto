@@ -255,14 +255,29 @@ def interactive_model_selection():
 
 # ===== ESTILOS DE IMAGEN (presets) =====
 STYLE_PRESETS = [
-    ("Sombras de Gaia (siluetas atmosféricas)", textwrap.dedent("""\
-    Crea una ilustración atmosférica con un estilo visual distintivo llamado 'Sombras de Gaia'.
-    Estilo visual:
-    - Siluetas expresivas: figuras en sombra (sin rasgos) con poses que transmiten emoción.
-    - Atmósfera lumínica: luz difusa, contraluces, haces de luz entre niebla/polvo.
-    - Paleta limitada: azules oscuros/negros/grises con acento cálido (ámbar/dorado/rojo tenue).
-    - Composición cinematográfica vertical, textura orgánica y grano leve.
-    - Coherencia narrativa entre imágenes, como si todas fueran del mismo universo.
+    ("Novela Gráfica Oscura (horror gótico cinematográfico)", textwrap.dedent("""\
+    Ilustración estilo novela gráfica moderna y cómic de autor, con estética de horror gótico cinematográfico.
+
+    Características visuales esenciales:
+    - Estilo de cómic adulto de alta calidad con narrativa visual cinematográfica
+    - Composición dramática pensada para encuadres verticales tipo storyboard de película
+    - Tonos oscuros y atmosféricos: negros profundos, grises ricos, azules nocturnos, sepias envejecidos
+    - Iluminación claroscuro dramática con sombras profundas que resaltan tensión y misterio
+    - Alto nivel de detalle en texturas, arquitectura y elementos ambientales
+    - Calidad cinematográfica en la composición de cada escena, como fotogramas de una película de terror gótico
+
+    Atmósfera narrativa:
+    - Sensación de horror gótico elegante, no gore explícito sino tensión psicológica
+    - Personajes definidos con rasgos faciales consistentes, expresiones intensas y emotivas
+    - Elementos arquitectónicos detallados (edificios antiguos, calles empedradas, interiores decadentes)
+    - Ambiente cargado de niebla, polvo en suspensión, lluvia o nieve según la escena
+    - Paleta de color reducida pero sofisticada, con acentos cálidos puntuales (ámbar, rojo sangre, dorado viejo)
+
+    Coherencia visual entre escenas:
+    - Los personajes deben mantener exactamente la misma apariencia física, ropa y estilo
+    - El tratamiento de luz y sombra debe ser consistente en toda la narrativa
+    - La textura gráfica y el nivel de detalle deben permanecer uniformes
+    - Todas las imágenes deben sentirse parte del mismo universo visual oscuro
     """).strip()),
 
     ("Fábulas Nocturnas (animales simbólicos)", textwrap.dedent("""\
