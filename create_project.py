@@ -71,16 +71,17 @@ def generate_creative_content(idea: str):
     - Cada escena sigue este formato exacto:
       1. Tag de hablante en su propia línea: `[NARRADOR]`
       2. Tag de imagen en la siguiente línea: `[imagen:1.mp4]` (DÍGITOS numéricos: 1, 2, 3...)
-      3. Texto descriptivo de la escena (15-20 palabras máximo)
+      3. Texto descriptivo de la escena (12-15 palabras máximo - CONCISO y PRECISO)
       4. Línea en blanco entre escenas
 
     Ejemplo correcto:
     [NARRADOR]
     [imagen:1.mp4]
-    En los valles más profundos, donde la niebla nunca se disipa, se susurran leyendas olvidadas.
+    En los valles más profundos, donde la niebla nunca se disipa, se susurran leyendas.
 
     PARÁMETROS:
-    - Total: 6-10 escenas (100-150 palabras totales)
+    - Total: 7-8 escenas (90-120 palabras totales)
+    - Duración objetivo: ~60 segundos de video final
     - Numeración: Usar DÍGITOS en tags [imagen:1.mp4] NO palabras
     - Números en texto narrativo: Escribir con letras ("mil novecientos cincuenta")
     - Finalizar obligatoriamente con tag `[CIERRE]` en su propia línea
@@ -596,9 +597,9 @@ def animate_images_with_replicate(project_path: str, overwrite: bool = False):
 
     print("\n🎬 Iniciando animación de imágenes con Replicate...")
     print("   Modelo: bytedance/seedance-1-pro-fast")
-    print("   Duración: 5 segundos por video")
+    print("   Duración: 8 segundos por video (optimizado para sincronización)")
     print("   Resolución: 480p (óptima para redes sociales)")
-    print("   Costo: $0.015/segundo → ~$0.75 por proyecto de 10 videos 🎯\n")
+    print("   Costo: $0.015/segundo → ~$0.84-0.96 por proyecto de 7-8 videos 🎯\n")
 
     images_path = os.path.join(project_path, "images")
     if not os.path.exists(images_path):
@@ -645,7 +646,7 @@ def animate_images_with_replicate(project_path: str, overwrite: bool = False):
                             "image": img_file,
                             "prompt": "Smooth cinematic camera movement, subtle atmospheric motion",
                             "resolution": "480p",
-                            "duration": 5
+                            "duration": 8  # 8 segundos para mejor sincronización con audio
                         }
                     )
 
@@ -887,7 +888,7 @@ def main():
     parser.add_argument("--image-quality", default=None,
                         help="Mantenido por compatibilidad, no usado con Gemini.")
     parser.add_argument("--animate-images", action="store_true",
-                        help="Anima las imágenes generadas usando Seedance 1.0 Pro Fast (480p, ~$0.075 por video de 5s).")
+                        help="Anima las imágenes generadas usando Seedance 1.0 Pro Fast (480p, 8s, ~$0.12 por video).")
     args = parser.parse_args()
 
     # --- MODO AUTOMÁTICO ---
