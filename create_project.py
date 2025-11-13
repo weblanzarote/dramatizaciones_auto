@@ -510,8 +510,8 @@ def generate_visuals_for_script(
                         if hasattr(part, 'inline_data') and part.inline_data is not None:
                             # Usar el método as_image() para obtener la imagen PIL
                             pil_image = part.as_image()
-                            # Guardar directamente
-                            pil_image.save(image_path, "PNG")
+                            # Guardar directamente (PIL detecta formato por extensión .png)
+                            pil_image.save(image_path)
                             image_saved = True
                             break
 
