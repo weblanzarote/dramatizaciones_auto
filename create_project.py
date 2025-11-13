@@ -489,44 +489,34 @@ def generate_visuals_for_script(
                     final_prompt = consistency_instruction + build_master_prompt(style_block, clean_text)
                     print(f"   → Manteniendo consistencia con imagen base")
 
-                # Llamar a Gemini API
+                # Llamar a Gemini API con configuración para generación de imágenes
                 response = gemini_client.models.generate_content(
                     model=image_model,
-                    contents=final_prompt
+                    contents=[final_prompt],
+                    config=types.GenerateContentConfig(
+                        response_modalities=["IMAGE"],
+                        image_config=types.ImageConfig(
+                            aspect_ratio="9:16",  # Vertical para TikTok/Reels
+                        ),
+                    ),
                 )
 
-                # Gemini devuelve imágenes en response.candidates[0].content.parts
+                # Gemini devuelve imágenes en response.parts
                 # Buscar la parte que contiene la imagen
-                image_data = None
-                if hasattr(response, 'candidates') and len(response.candidates) > 0:
-                    candidate = response.candidates[0]
-                    if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts'):
-                        for part in candidate.content.parts:
-                            # Gemini puede devolver inline_data con mime_type y data
-                            if hasattr(part, 'inline_data'):
-                                image_data = part.inline_data.data
-                                break
-                            # O puede devolver un URI
-                            elif hasattr(part, 'file_data') and hasattr(part.file_data, 'file_uri'):
-                                # Descargar desde URI
-                                file_uri = part.file_data.file_uri
-                                r = requests.get(file_uri, timeout=60)
-                                r.raise_for_status()
-                                image_data = r.content
-                                break
+                image_saved = False
+                if hasattr(response, 'parts'):
+                    for part in response.parts:
+                        # Verificar si el part tiene inline_data (imagen)
+                        if hasattr(part, 'inline_data') and part.inline_data is not None:
+                            # Usar el método as_image() para obtener la imagen PIL
+                            pil_image = part.as_image()
+                            # Guardar directamente
+                            pil_image.save(image_path, "PNG")
+                            image_saved = True
+                            break
 
-                if not image_data:
-                    raise RuntimeError("Gemini no devolvió datos de imagen válidos")
-
-                # Guardar la imagen
-                # Si image_data es base64, decodificar
-                if isinstance(image_data, str):
-                    image_bytes = base64.b64decode(image_data)
-                else:
-                    image_bytes = image_data
-
-                with open(image_path, "wb") as f:
-                    f.write(image_bytes)
+                if not image_saved:
+                    raise RuntimeError("Gemini no devolvió datos de imagen válidos en response.parts")
 
                 # Marcar que el estilo base ya está establecido
                 if i == 1 or not base_style_established:
