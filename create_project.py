@@ -169,7 +169,7 @@ def generate_creative_content(idea: str):
         return content
 
     except Exception as e:
-        print(f"❌ Error al generar contenido con OpenAI (gpt-5-mini): {e}")
+        print(f"❌ Error al generar contenido con OpenAI (gpt-5.1): {e}")
         return None
         
 def rewrite_prompt_for_safety(prompt_text: str, client: OpenAI):
@@ -177,7 +177,7 @@ def rewrite_prompt_for_safety(prompt_text: str, client: OpenAI):
     print("✍️  Reescribiendo el prompt para evitar filtros de seguridad...")
     try:
         response = client.chat.completions.create(
-            model="gpt-5-nano", # Usamos un modelo rápido y barato para esta tarea simple
+            model="gpt-5.1", 
             messages=[
                 {"role": "system", "content": (
                     "Eres un asistente que reformula prompts para un generador de imágenes. "
@@ -337,88 +337,143 @@ STYLE_PRESETS = [
     - Todas las imágenes deben sentirse parte del mismo universo visual oscuro
     """).strip()),
 
-    ("Fábulas Nocturnas (animales simbólicos)", textwrap.dedent("""\
-    Crea una ilustración con animales antropomorfos que encarnan roles humanos
-    (por ejemplo, un cuervo mensajero vigilante, un zorro astuto, un gato errante melancólico).
-    Estilo visual:
-    - Tonos nocturnos con bruma y luz teatral.
-    - Sombras largas y enfoque narrativo en la pose.
-    - Paleta reducida con un único color de acento emocional.
-    - Sensación de fábula oscura y cuento moderno.
+("Fotorrealismo Cinematográfico (Thriller Moderno)", textwrap.dedent("""\
+    Estilo fotorrealista cinematográfico, como un fotograma de una película de thriller contemporáneo (estilo David Fincher o A24).
+
+    Características visuales esenciales:
+    - Hiperrealismo con un fino grano de película analógica (film grain)
+    - Iluminación de bajo-key (low-key), muy oscura, con sombras profundas y fuentes de luz motivadas (un farol, una pantalla)
+    - Paleta de colores fría y desaturada: predominio de azules nocturnos, verdes industriales y grises urbanos
+    - Reflejos especulares húmedos: asfalto mojado por la lluvia, sudor en la piel, metal brillante
+    - Composición de 'thriller' con encuadres intencionados, a menudo usando espacio negativo
+    - Profundidad de campo cinematográfica, con fondos desenfocados (bokeh) que aíslan al sujeto
+
+    Coherencia visual entre escenas:
+    - La gradación de color (color grade) específica y la textura del grano deben ser idénticas en todas las imágenes
+    - Los personajes deben mantener consistencia fotográfica absoluta
     """).strip()),
 
-    ("Tinta + Acento (monocromo)", textwrap.dedent("""\
-    Ilustración monocromática estilo tinta, con un único color de acento que resalte un objeto o emoción.
-    Estilo visual:
-    - Alto contraste, negros profundos y blancos limpios.
-    - Textura de pincel seco, bordes ligeramente irregulares.
-    - Sensación de novela negra / cómic adulto.
-    - Minimalista y muy gráfico.
+    ("Animación Neo-Noir (Estilo 'Arcane')", textwrap.dedent("""\
+    Ilustración híbrida 2D/3D con estética 'painterly' oscura, inspirada en series como 'Arcane' (Fortiche).
+
+    Características visuales esenciales:
+    - Modelos 3D con texturas de pinceladas pintadas a mano, visibles y expresivas
+    - Contornos de tinta negros y angulosos que definen las formas
+    - Iluminación volumétrica dramática y teatral, con 'god rays' (rayos de luz) atravesando el humo o el polvo
+    - Paleta de colores dual: entornos oscuros y desaturados en contraste con luces de neón vibrantes (rosa, cian, ámbar)
+    - Expresiones faciales intensas y poses dinámicas
+    - Fondos detallados que mezclan arquitectura 'steampunk' o 'art deco' con decadencia moderna
+
+    Coherencia visual entre escenas:
+    - El estilo de textura pintada, el grosor del contorno y la paleta de neón deben ser uniformes
+    - Los personajes deben mantener sus rasgos estilizados y ropa
     """).strip()),
 
-    ("Pincel Expresionista (pintura digital)", textwrap.dedent("""\
-    Pintura digital expresionista con pinceladas visibles.
-    Estilo visual:
-    - Formas sugeridas más que definidas, bordes suaves.
-    - Luces y sombras dramáticas de estilo cinematográfico.
-    - Colores ligeramente desaturados con estallidos puntuales de color intenso.
-    - Apariencia de concept art de una película.
+    ("Óleo Digital Cinematográfico (Terror Clásico)", textwrap.dedent("""\
+    Pintura al óleo digital con una estética de terror gótico clásico, rica en textura y drama.
+
+    Características visuales esenciales:
+    - Textura de lienzo visible y pinceladas empastadas (impasto) que dan peso y volumen a las formas
+    - Iluminación de claroscuro extremo, inspirada en Caravaggio o Rembrandt, con luz dura y sombras que se funden en negro
+    - Paleta de colores profunda y rica: rojos sangre, azules profundos, ocres terrosos y dorados antiguos
+    - Composición cinematográfica que enfatiza la escala (personajes pequeños ante arquitecturas opresivas)
+    - Atmósfera cargada de polvo en suspensión iluminado por la luz
+    - Expresiones faciales emotivas, capturadas con pinceladas realistas pero expresivas
+
+    Coherencia visual entre escenas:
+    - La misma paleta de colores y la misma textura de pincel/lienzo deben aplicarse en toda la secuencia
+    - La iluminación debe mantener el mismo estilo dramático
     """).strip()),
 
-    ("Diorama de Papel (teatro de sombras)", textwrap.dedent("""\
-    Ilustración estilo diorama de papel recortado.
-    Estilo visual:
-    - Planos superpuestos como capas de cartulina.
-    - Sombras proyectadas para dar profundidad.
-    - Personajes y objetos con bordes nítidos tipo recorte.
-    - Iluminación lateral o contraluz, aspecto artesanal teatral.
+    ("Grabado Anatómico Victoriano (Códice Maldito)", textwrap.dedent("""\
+    Ilustración estilo grabado en cobre o xilografía, como sacada de un códice antiguo o un libro de anatomía victoriano.
+
+    Características visuales esenciales:
+    - Estilo de línea fina y detallada (hatching y cross-hatching) para crear sombras y volumen
+    - Fondo de papel envejecido, color pergamino o sepia, con manchas y textura visible
+    - Paleta de colores estrictamente limitada: negro para las líneas, y opcionalmente un solo color de acento (rojo sangre o azul índigo)
+    - Composición centrada, a menudo con elementos simétricos o diagramáticos
+    - Sensación de ilustración técnica o científica, pero aplicada a un tema paranormal o macabro
+    - Puede incluir anotaciones ilegibles o diagramas fantásticos en los márgenes
+
+    Coherencia visual entre escenas:
+    - La textura del papel, el estilo de línea de grabado y la paleta deben ser idénticos
     """).strip()),
 
-    ("Anime Nocturno (línea + cel shading)", textwrap.dedent("""\
-    Ilustración con estética anime japonesa contemporánea.
-    Estilo visual:
-    - Dibujo de contorno claro (línea limpia) y cel shading en 2–3 niveles.
-    - Proporciones estilizadas, ojos expresivos, gestos claros.
-    - Colores planos con sombras definidas; brillos de lluvia y neón.
-    - Fondo con perspectiva profunda y niebla azulada.
-    - Evita textura pictórica; evita pinceladas sueltas; evita realismo fotográfico.
+    ("Fotografía Antigua Inquietante (Daguerrotipo)", textwrap.dedent("""\
+    Simulación de una fotografía analógica antigua, como un daguerrotipo, ferrotipo o una placa de vidrio del siglo XIX.
+
+    Características visuales esenciales:
+    - Tono monocromático (sepia, cianotipo azulado o plata fría)
+    - Alto grano, imperfecciones de la emulsión, arañazos, manchas y viñeteado pesado en los bordes
+    - Luz suave y difusa, típica de los largos tiempos de exposición
+    - Poses estáticas, miradas directas a cámara, expresiones serias o inquietantes
+    - Profundidad de campo reducida, con fondos borrosos o pictóricos
+    - Sensación de artefacto encontrado, un recuerdo perdido de un evento fantasmal
+
+    Coherencia visual entre escenas:
+    - El nivel de grano, el tono de color (sepia/plata) y el tipo de artefactos deben ser idénticos en todas las imágenes
     """).strip()),
 
-    ("Ghibli Melancólico (acuarela suave)", textwrap.dedent("""\
-    Ilustración inspirada en estudios Ghibli.
-    Estilo visual:
-    - Colores suaves, aspecto de acuarela; contornos discretos.
-    - Luz cálida envolvente, atmósfera de nostalgia y calma.
-    - Detalles naturales (hojas, viento, lluvia delicada) integrados en la escena.
-    - Siluetas redondeadas, formas amables y composición contemplativa.
-    - Evita texturas agresivas y contrastes extremos; evita noir duro.
+    ("Acuarela Gótica (Bruma y Tinta)", textwrap.dedent("""\
+    Ilustración en acuarela con un estilo oscuro y atmosférico, como las ilustraciones de novelas góticas.
+
+    Características visuales esenciales:
+    - Técnica de 'wet-on-wet' (húmedo sobre húmedo) para crear bordes que sangran y se difuminan
+    - Paleta de colores 'grisalla' (grises y negros) con lavados de color muy oscuros: índigo, carmesí, verde bosque
+    - Textura visible de papel de acuarela de grano grueso
+    - Composición dominada por la bruma, la niebla o la lluvia, donde las formas emergen de la oscuridad
+    - Contornos de tinta negra sueltos que refuerzan las formas principales
+    - Luz que parece emanar desde dentro de la niebla, creando siluetas
+
+    Coherencia visual entre escenas:
+    - La textura del papel, la paleta de colores y la técnica de sangrado de color deben ser uniformes
     """).strip()),
 
-    ("Pixar Cinemático (3D suave)", textwrap.dedent("""\
-    Ilustración con look de animación tipo Pixar.
-    Estilo visual:
-    - Volúmenes suaves y materiales limpios; sensación 3D con iluminación global suave.
-    - Luces volumétricas; reflejos sutiles en suelo mojado.
-    - Personajes con proporciones caricaturizadas y expresividad clara.
-    - Paleta viva pero controlada: fríos nocturnos con un acento cálido.
-    - Evita grano fílmico y brochazos; evita blanco y negro.
+    ("Stop-Motion Macabro (Cuento Táctil)", textwrap.dedent("""\
+    Estilo que simula una película de animación stop-motion oscura (inspirada en Laika, Tim Burton o los Hermanos Quay).
+
+    Características visuales esenciales:
+    - Texturas táctiles y tangibles: arcilla con huellas dactilares, tela de arpillera, madera astillada, metal oxidado
+    - Proporciones de personajes exageradas: ojos grandes, miembros largos y delgados, posturas lánguidas
+    - Iluminación de estudio teatral: luces duras y direccionales que crean sombras nítidas en un 'set' físico
+    - Imperfecciones deliberadas que delatan la naturaleza artesanal de los modelos
+    - Atmósfera de cuento de hadas macabro
+    - Profundidad de campo reducida (tilt-shift) que simula una miniatura
+
+    Coherencia visual entre escenas:
+    - Las texturas de los materiales (arcilla, tela) y el estilo de iluminación de 'set' deben ser uniformes
     """).strip()),
 
-    ("Pixel Noir (8-bit, 16x16 tiles)", textwrap.dedent("""\
-    Ilustración estilo pixel art retro.
-    Requisitos de estilo:
-    - Píxeles grandes y visiblemente cuadriculados (grid perceptible), sin anti-aliasing.
-    - Paleta limitada de 16–32 colores; evita degradados suaves.
-    - Sombreado con dithering y rampas de color cortas; contornos 1–2 px.
-    - Composición clara pensada para tiles 16x16. Evita brochazos, blur y look fotográfico.
+    ("Vitral Gótico (Luz Oscura)", textwrap.dedent("""\
+    Ilustración con el estilo de un vitral o vidriera de una catedral gótica, pero con temática oscura.
+
+    Características visuales esenciales:
+    - Colores joya profundos y saturados: rubí, zafiro, esmeralda, ámbar
+    - Contornos de plomo gruesos, negros y definidos que segmentan todas las formas
+    - Diseño estilizado y bidimensional, con poca o ninguna perspectiva realista
+    - Fuerte iluminación retroiluminada, como si la luz pasara a través del vidrio
+    - Composición formal, a menudo simétrica o encerrada en un marco ornamental
+    - Las 'imperfecciones' del vidrio (burbujas, variaciones de color) deben ser visibles
+
+    Coherencia visual entre escenas:
+    - El grosor de las líneas de plomo, la paleta de colores joya y la textura del vidrio deben ser constantes
     """).strip()),
 
-    ("Pixel Art Isométrico RPG (16×16 tiles)", textwrap.dedent("""\
-    Ilustración en estilo pixel art isométrico (3/4 view) como un RPG clásico.
-    - Cámara elevada 3/4; líneas ~30–35°, horizonte alto.
-    - Paleta 24–48 colores; píxel grueso, contornos oscuros; bloques planos.
-    - Sombreado por bloques y dithering; suelo/objetos en tiles 16×16 (tileable).
-    - Objetos alineados a rejilla; proporciones tipo sprite; sin blur ni realismo fotográfico.
+    ("Alto Contraste Noir (Siluetas y Sombras)", textwrap.dedent("""\
+    Estilo de cómic noir de alto contraste, llevado al extremo (inspirado en 'Sin City' de Frank Miller).
+
+    Características visuales esenciales:
+    - Estrictamente blanco y negro. Sin grises. Las sombras son masas de negro absoluto.
+    - Uso dramático del espacio negativo; las siluetas definen la escena
+    - Composición gráfica y angular, con perspectivas forzadas
+    - La luz es un arma: recorta formas de la oscuridad
+    - Opcionalmente, un único y diminuto toque de un solo color de acento (un rojo brillante) en alguna escena clave
+    - Estética de novela gráfica 'hard-boiled'
+
+    Coherencia visual entre escenas:
+    - El tratamiento de la luz y la sombra debe ser radicalmente binario (B/N) y coherente
+    - Si se usa un color de acento, debe ser el mismo y usarse con el mismo propósito
     """).strip()),
 ]
 STYLE_NAMES = [n for n, _ in STYLE_PRESETS]
@@ -457,46 +512,82 @@ def extract_visual_consistency_brief(script_text: str, client: OpenAI) -> str:
     """
     Analiza el guión completo y extrae un brief visual de personajes y elementos recurrentes
     para mantener consistencia absoluta entre todas las imágenes.
+    
+    Esta versión está optimizada para generar instrucciones claras y densas
+    para modelos de imagen como Gemini, SIN usar ejemplos concretos que
+    puedan sesgar el resultado.
     """
-    print("📋 Analizando guión para extraer brief de consistencia visual...")
+    print("📋 Analizando guión para extraer brief de consistencia visual (versión SIN ejemplos)...")
 
     try:
+        # Prompt del sistema mejorado, sin ejemplos concretos
+        system_prompt = """
+    Eres un Director de Arte experto en crear 'Briefs de Consistencia' para secuencias de storyboard.
+    Tu tarea es analizar el guion y definir los elementos visuales RECURRENTES que deben
+    mantenerse idénticos en todas las escenas.
+
+    Tu brief será usado para instruir a un modelo de imagen (Gemini), así que debe ser denso
+    en adjetivos visuales, texturales y atmosféricos, inferidos *únicamente* del guion.
+
+    --------------------------------------------------
+    DIRECTRICES DE FORMATO (MUY IMPORTANTE)
+    --------------------------------------------------
+
+    1.  **OMITE LÍNEAS IRRELEVANTES:** Responde *únicamente* con las líneas para las que
+        encuentres información clara en el guion. Si no hay un personaje principal
+        recurrente, *OMITE* toda la línea 'PERSONAJE:'. Si no hay un escenario clave,
+        *OMITE* la línea 'ESCENARIO:'.
+        
+    2.  **NO USES 'N/A':** Nunca escribas 'N/A', 'Ninguno' o 'No aplica'. Simplemente omite
+        la línea correspondiente si no hay nada que añadir.
+
+    3.  **SÉ HÍPER-ESPECÍFICO:** Usa adjetivos potentes inferidos del tono del guion para
+        describir texturas, materiales, iluminación y emociones.
+
+    --------------------------------------------------
+    FORMATO DE SALIDA ESTRICTO
+    --------------------------------------------------
+    (Usa este formato exacto, rellenando la información INFERIDA del guion)
+
+    PERSONAJE: [Describe aquí: Género/Edad aparente, Ropa EXACTA y su estado/textura, Rasgos físicos/pelo distintivos, Actitud o emoción dominante]
+    ESCENARIO: [Describe aquí: Tipo de lugar o vehículo recurrente, Estilo/Época, Estado (nuevo, decrépito...), Textura clave (piedra, metal, madera...)]
+    ELEMENTOS CLAVE:
+    - [Describe aquí: El tipo de iluminación predominante y su cualidad (ej. dura, suave, color...)]
+    - [Describe aquí: La atmósfera general (ej. niebla, polvo, lluvia, tensión...)]
+    - [Describe aquí: La paleta de color principal o acentos recurrentes]
+
+    --------------------------------------------------
+    REGLA ESPECIAL (OBLIGATORIA)
+    --------------------------------------------------
+    - Si el guion está narrado en 1ª persona ('yo', 'mi', 'nosotros', 'miro'), *DEBES*
+      crear una descripción visual para el 'PERSONAJE:' narrador. Infiere sus rasgos
+      (edad, ropa, actitud) del contexto y el tono de la narración.
+    """
+
         response = client.chat.completions.create(
-            model="gpt-5-mini",
+            model="gpt-5.1", 
             messages=[
                 {
                     "role": "system",
-                    "content": (
-                        "Eres un director de arte que crea 'visual briefs' para mantener consistencia en secuencias de imágenes.\n\n"
-                        "TAREA PRINCIPAL:\n"
-                        "A partir de un guion narrado, extrae UNA DESCRIPCIÓN VISUAL CONCRETA Y ESPECÍFICA de:\n"
-                        "1. PERSONAJE PRINCIPAL (si existe): edad aproximada, género percibido, ropa específica, rasgos físicos distintivos, accesorios.\n"
-                        "2. ESCENARIO O VEHÍCULO RECURRENTE (si existe): tipo exacto, características clave, color, estado (nuevo, antiguo, deteriorado, etc.).\n"
-                        "3. ELEMENTOS VISUALES CONSISTENTES: objetos importantes, atmósfera, época o contexto temporal, tipo de iluminación predominante.\n\n"
-                        "DIRECTRICES IMPORTANTES:\n"
-                        "- Sé muy específico: no digas solo 'un hombre' o 'un coche'; describe rasgos y detalles visibles.\n"
-                        "- Mantén coherencia interna: si el texto sugiere un entorno rural, urbano, marítimo, etc., refleja eso claramente.\n"
-                        "- Si la historia está en primera persona ('yo', 'nosotros'), crea SIEMPRE una descripción visual del narrador protagonista.\n"
-                        "- Cuando la profesión o rol del protagonista se pueda deducir del contexto, refleja esa información en la ropa, los accesorios y la postura.\n"
-                        "- No inventes elementos que contradigan información explícita del guion, pero sí puedes concretar detalles que encajen con el tono.\n"
-                        "- Mantén la descripción total en 3–5 líneas: breve pero muy específica y fácil de usar para prompts de imagen.\n\n"
-                        "FORMATO ESTRICTO DE RESPUESTA (SIN COMENTARIOS ADICIONALES):\n"
-                        "PERSONAJE: [descripción específica del protagonista, o 'N/A' si realmente no hay ningún personaje identificable]\n"
-                        "ESCENARIO/VEHÍCULO: [descripción específica del escenario principal o vehículo recurrente, o 'N/A']\n"
-                        "ELEMENTOS CLAVE: [lista breve en texto corrido con los elementos visuales recurrentes]\n"
-                    )
+                    "content": system_prompt
                 }
 ,
-                {"role": "user", "content": f"Analiza este guión y extrae el visual brief:\n\n{script_text}"}
+                {"role": "user", "content": f"Analiza este guión y extrae el brief de consistencia:\n\n{script_text}"}
             ]
         )
 
         brief = response.choices[0].message.content.strip()
-        print(f"✅ Brief visual extraído:\n{brief}\n")
+        
+        # Pequeña limpieza por si acaso gpt-5.1 añade líneas vacías extra
+        brief_lines = [line for line in brief.split('\n') if line.strip()]
+        brief = '\n'.join(brief_lines)
+
+        print(f"✅ Brief visual optimizado (sin ejemplos) extraído:\n{brief}\n")
         return brief
 
     except Exception as e:
-        print(f"⚠️ No se pudo extraer brief visual: {e}")
+        print(f"⚠️ No se pudo extraer brief visual optimizado: {e}")
+        # Devolvemos un string vacío seguro para no romper el flujo
         return ""
 
 
@@ -938,7 +1029,7 @@ def generate_project_name_from_idea(idea_text: str, client: OpenAI):
 
     try:
         response = client.chat.completions.create(
-            model="gpt-5-mini",
+            model="gpt-5.1",
             messages=[
                 {"role": "system", "content": (
                     "Eres un asistente creativo que genera nombres únicos y memorables para proyectos de misterio y terror. "
@@ -1023,7 +1114,7 @@ Genera UNA idea original para el siguiente proyecto que tenga alto potencial vir
 
     try:
         response = client.chat.completions.create(
-            model="gpt-5",
+            model="gpt-5.1",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
