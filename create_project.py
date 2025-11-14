@@ -656,19 +656,42 @@ async def _animate_single_image_runware(runware_instance, image_path: str, video
         try:
             print(f"🎥 Animando imagen {image_number}...")
 
-            # Convertir imagen a base64 para enviar a Runware
-            with open(image_path, "rb") as img_file:
-                import base64
-                image_data = base64.b64encode(img_file.read()).decode('utf-8')
-                image_uri = f"data:image/png;base64,{image_data}"
+            # Leer y procesar la imagen
+            from PIL import Image
+            import base64
+            import io
+
+            img = Image.open(image_path)
+            width, height = img.size
+
+            # Runware/ByteDance requiere ancho mínimo de 300px
+            # Si la imagen es más pequeña, redimensionarla proporcionalmente
+            if width < 300:
+                scale_factor = 300 / width
+                new_width = 300
+                new_height = int(height * scale_factor)
+                img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                print(f"   📐 Imagen redimensionada: {width}x{height} → {new_width}x{new_height}")
+                width, height = new_width, new_height
+
+            # Convertir imagen procesada a base64
+            buffer = io.BytesIO()
+            img.save(buffer, format='PNG')
+            image_data = base64.b64encode(buffer.getvalue()).decode('utf-8')
+            image_uri = f"data:image/png;base64,{image_data}"
+
+            # Ajustar dimensiones de salida al tamaño real de la imagen procesada
+            # Redondear al múltiplo de 8 más cercano (requerimiento común de modelos de video)
+            output_width = (width // 8) * 8
+            output_height = (height // 8) * 8
 
             # Crear request para Runware usando Seedance 1.0 Pro Fast
             request = IVideoInference(
                 positivePrompt="Smooth cinematic camera movement, subtle atmospheric motion, natural dynamics",
                 model="bytedance:2@2",  # Seedance 1.0 Pro Fast
                 duration=6,  # 6 segundos
-                width=864,   # 480p landscape (16:9)
-                height=480,
+                width=output_width,
+                height=output_height,
                 numberResults=1,
                 includeCost=True,
                 frameImages=[
@@ -737,7 +760,7 @@ def animate_images_with_runware(project_path: str, overwrite: bool = False):
     print("\n🎬 Iniciando animación de imágenes con Runware...")
     print("   Modelo: Seedance 1.0 Pro Fast (bytedance:2@2)")
     print("   Duración: 6 segundos por video")
-    print("   Resolución: 864x480 (16:9 landscape)")
+    print("   Resolución: Automática (mín. 300px ancho, mantiene aspect ratio)")
     print("   Costo: ~$0.0315 por video → ~$0.19-0.31 por proyecto de 6-10 videos 💰")
     print("   💡 AHORRO: 65% más barato que Replicate\n")
 
