@@ -824,7 +824,10 @@ def animate_images_with_runware(project_path: str, overwrite: bool = False):
 
         finally:
             # Cerrar conexión
-            await runware.close()
+            try:
+                await runware.disconnect()
+            except Exception as e:
+                print(f"   ⚠️  Advertencia al cerrar conexión: {e}")
 
         return all_videos_successful
 
