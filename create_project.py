@@ -41,17 +41,18 @@ try:
 except Exception as e:
     raise RuntimeError(f"Error al inicializar el cliente de Gemini: {e}")
 
-# Configuración de Replicate (opcional, solo si se usa --animate-images)
-REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN")
-replicate_client = None
-if REPLICATE_API_TOKEN:
+# Configuración de Runware (opcional, solo si se usa --animate-images)
+RUNWARE_API_KEY = os.getenv("RUNWARE_API_KEY")
+runware_available = False
+if RUNWARE_API_KEY:
     try:
-        import replicate
-        replicate_client = replicate.Client(api_token=REPLICATE_API_TOKEN)
+        from runware import Runware, IVideoInference, IFrameImage
+        import asyncio
+        runware_available = True
     except ImportError:
-        print("⚠️  Advertencia: 'replicate' no está instalado. Ejecuta: pip install replicate")
+        print("⚠️  Advertencia: 'runware' no está instalado. Ejecuta: pip install runware")
     except Exception as e:
-        print(f"⚠️  Advertencia: Error al inicializar Replicate: {e}")
+        print(f"⚠️  Advertencia: Error al inicializar Runware: {e}")
 
 
 # --- 1. GENERACIÓN DE CONTENIDO CREATIVO CON OPENAI (gpt-5.1) ---
@@ -644,10 +645,80 @@ Contexto de la historia completa:
         return False
 
 
-# --- 2.5. ANIMACIÓN DE IMÁGENES CON REPLICATE ---
-def animate_images_with_replicate(project_path: str, overwrite: bool = False):
+# --- 2.5. ANIMACIÓN DE IMÁGENES CON RUNWARE ---
+async def _animate_single_image_runware(runware_instance, image_path: str, video_path: str, image_number: str):
     """
-    Anima las imágenes PNG del proyecto usando Seedance 1.0 Pro Fast en Replicate.
+    Función auxiliar async para animar una imagen con Runware.
+    """
+    MAX_RETRIES = 3
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            print(f"🎥 Animando imagen {image_number}...")
+
+            # Convertir imagen a base64 para enviar a Runware
+            with open(image_path, "rb") as img_file:
+                import base64
+                image_data = base64.b64encode(img_file.read()).decode('utf-8')
+                image_uri = f"data:image/png;base64,{image_data}"
+
+            # Crear request para Runware usando Seedance 1.0 Pro Fast
+            request = IVideoInference(
+                positivePrompt="Smooth cinematic camera movement, subtle atmospheric motion, natural dynamics",
+                model="bytedance:2@2",  # Seedance 1.0 Pro Fast
+                duration=6,  # 6 segundos
+                width=864,   # 480p landscape (16:9)
+                height=480,
+                numberResults=1,
+                includeCost=True,
+                frameImages=[
+                    IFrameImage(
+                        inputImage=image_uri,
+                        frame="first"
+                    )
+                ]
+            )
+
+            # Generar video
+            videos = await runware_instance.videoInference(requestVideo=request)
+
+            if videos and len(videos) > 0:
+                video = videos[0]
+
+                # Descargar el video desde la URL proporcionada por Runware
+                print(f"   📥 Descargando video desde Runware...")
+                response = requests.get(video.videoURL, timeout=120)
+                response.raise_for_status()
+
+                with open(video_path, "wb") as video_file:
+                    video_file.write(response.content)
+
+                # Mostrar información de costo
+                if hasattr(video, 'cost') and video.cost:
+                    print(f"   💰 Costo: ${video.cost}")
+
+                print(f"   ✔ Video guardado: {video_path}")
+                return True
+            else:
+                raise RuntimeError("Runware no devolvió videos")
+
+        except Exception as e:
+            if attempt < MAX_RETRIES - 1:
+                wait_time = (attempt + 1) * 3
+                print(f"   ⚠️  Error (intento {attempt + 1}/{MAX_RETRIES}): {e}")
+                print(f"   Reintentando en {wait_time}s...")
+                await asyncio.sleep(wait_time)
+                continue
+            else:
+                print(f"   ❌ Error después de {MAX_RETRIES} intentos: {e}")
+                return False
+
+    return False
+
+
+def animate_images_with_runware(project_path: str, overwrite: bool = False):
+    """
+    Anima las imágenes PNG del proyecto usando Seedance 1.0 Pro Fast en Runware.
 
     Args:
         project_path: Ruta al directorio del proyecto
@@ -656,18 +727,19 @@ def animate_images_with_replicate(project_path: str, overwrite: bool = False):
     Returns:
         True si todas las animaciones se generaron correctamente, False si hubo errores.
     """
-    if not replicate_client:
-        print("\n❌ Error: Replicate no está configurado correctamente.")
+    if not runware_available:
+        print("\n❌ Error: Runware no está configurado correctamente.")
         print("   Asegúrate de:")
-        print("   1. Tener REPLICATE_API_TOKEN en tu archivo .env")
-        print("   2. Haber instalado: pip install replicate")
+        print("   1. Tener RUNWARE_API_KEY en tu archivo .env")
+        print("   2. Haber instalado: pip install runware")
         return False
 
-    print("\n🎬 Iniciando animación de imágenes con Replicate...")
-    print("   Modelo: bytedance/seedance-1-pro-fast")
-    print("   Duración: 6 segundos por video (balance costo/calidad)")
-    print("   Resolución: 480p (óptima para redes sociales)")
-    print("   Costo: $0.015/segundo → ~$0.81-0.99 por proyecto de 6-10 videos 🎯\n")
+    print("\n🎬 Iniciando animación de imágenes con Runware...")
+    print("   Modelo: Seedance 1.0 Pro Fast (bytedance:2@2)")
+    print("   Duración: 6 segundos por video")
+    print("   Resolución: 864x480 (16:9 landscape)")
+    print("   Costo: ~$0.0315 por video → ~$0.19-0.31 por proyecto de 6-10 videos 💰")
+    print("   💡 AHORRO: 65% más barato que Replicate\n")
 
     images_path = os.path.join(project_path, "images")
     if not os.path.exists(images_path):
@@ -688,84 +760,49 @@ def animate_images_with_replicate(project_path: str, overwrite: bool = False):
     image_files.sort(key=lambda x: int(x.split('.')[0]))
     print(f"📁 Encontradas {len(image_files)} imágenes para animar: {', '.join(image_files)}\n")
 
-    all_videos_successful = True
-    MAX_RETRIES = 3
+    # Función async principal que ejecuta todas las animaciones
+    async def animate_all():
+        # Conectar a Runware
+        runware = Runware(api_key=RUNWARE_API_KEY)
+        await runware.connect()
+        print("✅ Conectado a Runware API\n")
 
-    for image_file in image_files:
-        image_number = image_file.split('.')[0]
-        image_path = os.path.join(images_path, image_file)
-        video_path = os.path.join(images_path, f"{image_number}.mp4")
+        all_videos_successful = True
 
-        # Si ya existe y no queremos sobrescribir
-        if os.path.exists(video_path) and not overwrite:
-            print(f"✓ Video {image_number}.mp4 ya existe, saltando animación.")
-            continue
+        try:
+            for image_file in image_files:
+                image_number = image_file.split('.')[0]
+                image_path = os.path.join(images_path, image_file)
+                video_path = os.path.join(images_path, f"{image_number}.mp4")
 
-        print(f"🎥 Animando {image_file}...")
-        video_generated = False
-
-        for attempt in range(MAX_RETRIES):
-            try:
-                # Abrir la imagen y enviarla a Replicate
-                with open(image_path, "rb") as img_file:
-                    output = replicate_client.run(
-                        "bytedance/seedance-1-pro-fast",
-                        input={
-                            "image": img_file,
-                            "prompt": "Smooth cinematic camera movement, subtle atmospheric motion",
-                            "resolution": "480p",
-                            "duration": 6  # 6 segundos - balance entre costo y flexibilidad narrativa
-                        }
-                    )
-
-                # El output es una URL al video generado
-                if output:
-                    # Manejar diferentes tipos de output de Replicate
-                    if isinstance(output, str):
-                        video_url = output
-                    elif hasattr(output, 'url'):  # FileOutput object
-                        video_url = output.url
-                    elif isinstance(output, list) and len(output) > 0:
-                        first_item = output[0]
-                        video_url = first_item if isinstance(first_item, str) else first_item.url
-                    else:
-                        raise RuntimeError(f"Formato de output no reconocido: {type(output)}")
-
-                    # Descargar el video
-                    print(f"   📥 Descargando video desde Replicate...")
-                    response = requests.get(video_url, timeout=120)
-                    response.raise_for_status()
-
-                    with open(video_path, "wb") as video_file:
-                        video_file.write(response.content)
-
-                    print(f"   ✔ Video guardado: {video_path}")
-                    video_generated = True
-                    break
-                else:
-                    raise RuntimeError("Replicate no devolvió una URL de video")
-
-            except Exception as e:
-                if attempt < MAX_RETRIES - 1:
-                    wait_time = (attempt + 1) * 3
-                    print(f"   ⚠️  Error (intento {attempt + 1}/{MAX_RETRIES}): {e}")
-                    print(f"   Reintentando en {wait_time}s...")
-                    time.sleep(wait_time)
+                # Si ya existe y no queremos sobrescribir
+                if os.path.exists(video_path) and not overwrite:
+                    print(f"✓ Video {image_number}.mp4 ya existe, saltando animación.")
                     continue
-                else:
-                    print(f"   ❌ Error después de {MAX_RETRIES} intentos: {e}")
+
+                # Animar imagen
+                success = await _animate_single_image_runware(
+                    runware, image_path, video_path, image_number
+                )
+
+                if not success:
+                    print(f"🚫 Falló la animación de {image_file}")
                     all_videos_successful = False
-                    break
+                    # Continuar con las siguientes imágenes
 
-        if not video_generated:
-            print(f"🚫 Falló la animación de {image_file}")
-            all_videos_successful = False
-            # Continuar con las siguientes imágenes en lugar de abortar completamente
+                # Pequeña pausa entre llamadas
+                await asyncio.sleep(1)
 
-        # Pequeña pausa entre llamadas para no saturar la API
-        time.sleep(1)
+        finally:
+            # Cerrar conexión
+            await runware.close()
 
-    if all_videos_successful:
+        return all_videos_successful
+
+    # Ejecutar el loop async
+    all_successful = asyncio.run(animate_all())
+
+    if all_successful:
         print("\n✅ Todas las imágenes han sido animadas con éxito.")
         print(f"   Los videos están en: {images_path}/")
         print(f"   Archivos: 1.mp4, 2.mp4, 3.mp4, etc.")
@@ -956,7 +993,7 @@ def main():
     parser.add_argument("--image-quality", default=None,
                         help="Mantenido por compatibilidad, no usado con Gemini.")
     parser.add_argument("--animate-images", action="store_true",
-                        help="Anima las imágenes generadas usando Seedance 1.0 Pro Fast (480p, 6s, ~$0.09 por video).")
+                        help="Anima las imágenes generadas usando Seedance 1.0 Pro Fast en Runware (864x480, 6s, ~$0.0315 por video - 65%% más barato que Replicate).")
     args = parser.parse_args()
 
     # --- MODO AUTOMÁTICO ---
@@ -1069,9 +1106,9 @@ def main():
     if not success:
         return
 
-    # Si se especificó --animate-images, animar las imágenes con Replicate
+    # Si se especificó --animate-images, animar las imágenes con Runware
     if args.animate_images:
-        animate_success = animate_images_with_replicate(
+        animate_success = animate_images_with_runware(
             project_path,
             overwrite=args.overwrite_images
         )
