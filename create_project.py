@@ -663,27 +663,33 @@ async def _animate_single_image_runware(runware_instance, image_path: str, video
 
             img = Image.open(image_path)
             width, height = img.size
+            aspect_ratio = width / height
 
-            # Runware/ByteDance requiere ancho mínimo de 300px
-            # Si la imagen es más pequeña, redimensionarla proporcionalmente
-            if width < 300:
-                scale_factor = 300 / width
-                new_width = 300
-                new_height = int(height * scale_factor)
-                img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
-                print(f"   📐 Imagen redimensionada: {width}x{height} → {new_width}x{new_height}")
-                width, height = new_width, new_height
+            print(f"   📐 Imagen original: {width}x{height} (ratio: {aspect_ratio:.3f})")
 
-            # Convertir imagen procesada a base64
+            # Dimensiones soportadas por Seedance 1.0 Pro Fast (bytedance:2@2)
+            # Formato: (ancho, alto, ratio, nombre)
+            SUPPORTED_DIMENSIONS = [
+                (864, 480, 1.800, "16:9 landscape"),
+                (736, 544, 1.353, "4:3 landscape"),
+                (640, 640, 1.000, "1:1 square"),
+                (544, 736, 0.739, "3:4 portrait"),
+                (480, 864, 0.556, "9:16 portrait"),
+                (416, 960, 0.433, "9:21 portrait"),
+                (960, 416, 2.308, "21:9 landscape"),
+            ]
+
+            # Encontrar la dimensión soportada más cercana al aspect ratio de la imagen
+            best_match = min(SUPPORTED_DIMENSIONS, key=lambda d: abs(d[2] - aspect_ratio))
+            output_width, output_height, _, format_name = best_match
+
+            print(f"   → Usando dimensión: {output_width}x{output_height} ({format_name})")
+
+            # Convertir imagen a base64
             buffer = io.BytesIO()
             img.save(buffer, format='PNG')
             image_data = base64.b64encode(buffer.getvalue()).decode('utf-8')
             image_uri = f"data:image/png;base64,{image_data}"
-
-            # Ajustar dimensiones de salida al tamaño real de la imagen procesada
-            # Redondear al múltiplo de 8 más cercano (requerimiento común de modelos de video)
-            output_width = (width // 8) * 8
-            output_height = (height // 8) * 8
 
             # Crear request para Runware usando Seedance 1.0 Pro Fast
             request = IVideoInference(
@@ -760,7 +766,7 @@ def animate_images_with_runware(project_path: str, overwrite: bool = False):
     print("\n🎬 Iniciando animación de imágenes con Runware...")
     print("   Modelo: Seedance 1.0 Pro Fast (bytedance:2@2)")
     print("   Duración: 6 segundos por video")
-    print("   Resolución: Automática (mín. 300px ancho, mantiene aspect ratio)")
+    print("   Resolución: Auto-detecta aspect ratio (480x864 para 9:16, 864x480 para 16:9, etc.)")
     print("   Costo: ~$0.0315 por video → ~$0.19-0.31 por proyecto de 6-10 videos 💰")
     print("   💡 AHORRO: 65% más barato que Replicate\n")
 
