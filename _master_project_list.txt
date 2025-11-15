@@ -1,6 +1,10 @@
 --- ÍNDICE DE PROYECTOS 'RELATOS EXTRAORDINARIOS' ---
 
-Total de proyectos indexados: 204
+Total de proyectos indexados: 219
+--------------------------------------------------
+
+NOTA PARA IA:
+Para generar nuevas ideas automáticas es más recomendable usar el archivo '_master_project_top.txt', que contiene solo los proyectos más relevantes (virales y medio virales) en formato compacto.
 --------------------------------------------------
 
 1_SONRISA: Las tres de la mañana. Las farolas de sodio bañan la calle en un solitario resplandor anaranjado. Javier camina, con las manos en los bolsillos y la cabeza gacha. El eco de sus propios pasos es el único sonido. Solo quiere llegar a casa.
@@ -207,6 +211,21 @@ Total de proyectos indexados: 204
 209_NOMBREPROHIBIDO: En Wamba, Valladolid, a medianoche la humedad de la iglesia románica se pega a la piel como advertencia frente al osario: miles de cráneos apilados, una pared de mandíbulas que no mienten.
 210_TOLEDOMEDIANOCHE: Toledo a medianoche; el Tajo empuja un aliento frío por las callejas. Busco la puerta modesta.
 211_PRINCIPEFELIZ: La estatua dorada del Príncipe Feliz llora al ver la ciudad miserable.
+212_ECOSDESOMPORT: Medianoche en Canfranc: la nieve muerde andenes del palacio dormido.
+213_NOMBREPROHIBIDO: Plano general nocturno del cortijo maldito, silueta de ladrillo oscuro, cinco chimeneas tiznadas recortadas contra el terral.
+214_DOCELATIDOS: En el puerto de Somosierra, los pinos negros se alzan bajo una niebla lechosa. Los faros solitarios trepan por la pendiente nevada.
+215_YAHEMOSCONTADO: Medianoche en Málaga; el caserón respira sin viento, sus ventanas vacías parecen vigilarme.
+216_ISLAEQUIVOCADA: Poniente de El Hierro, horizonte de plomo; los viejos del muelle fuman y callan nombres prohibidos.
+217_ERMITASINPUERTA: Medianoche frente al poniente gomero, el mar es una plancha negra, inmóvil, expectante.
+218_VELETAQUIETA: Medianoche en Trasmoz: el Moncayo se yergue oscuro, el pueblo encogido bajo un cielo metálico.
+219_CUARTOPELDAO: Santa Coloma de Cervelló duerme, pero Torre Salvana parece respirar bajo los pinos retorcidos.
+220_AREADELALMENDRO: Medianoche helada en la autopista del Mediterráneo; la niebla marina devora lentamente los focos naranjas.
+221_CRUZ118: Noche cerrada en la sierra de Segovia; el viento entre los pinos suena a rezos antiguos.
+222_LUMBREDEHESA: Medianoche en la frontera entre Huelva y Badajoz. La Dehesa de Jerez duerme bajo una luna velada y una niebla baja que se enreda entre las encinas.
+223_COLMENARSILENTE: Medianoche en Grazalema. La niebla oculta un cartel oxidado: “Colmenar del Silencio”.
+224_LACAMARA: Año mil novecientos tres. La niebla abraza un caserón solitario en la costa cántabra.
+225_CAPILLAPROFECA: El antiguo manicomio de Salamanca despierta entre andamios, focos fríos y polvo suspendido.
+226_ATLASALMA: La vieja facultad de medicina descansa silenciosa, sus pasillos apagan ecos de disecciones antiguas.
 
 
 ==================================================

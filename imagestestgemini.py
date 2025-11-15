@@ -1,18 +1,33 @@
 import os
-import base64
 import pathlib
 import datetime
 import textwrap
 from PIL import Image
 from slugify import slugify
 from dotenv import load_dotenv
-from openai import OpenAI
+import google.genai as genai
+from google.genai import types
 
 # =========================
 # CONFIGURACIÓN PREDEFINIDA
 # =========================
 
+# Cargar claves de API
+load_dotenv()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise ValueError("No se encontró la GEMINI_API_KEY en .env")
+
+# Inicializar cliente de Gemini
+try:
+    gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+    print("✅ Cliente de Google Gemini inicializado.")
+except Exception as e:
+    raise RuntimeError(f"Error al inicializar el cliente de Gemini: {e}")
+
+
 # ===== ESTILOS DE IMAGEN (presets) =====
+# (Son los mismos 10 estilos que ya tienes)
 STYLE_PRESETS = [
     ("Novela Gráfica Oscura (horror gótico cinematográfico)", textwrap.dedent("""\
     Ilustración estilo novela gráfica moderna y cómic de autor, con estética de horror gótico cinematográfico.
@@ -180,18 +195,16 @@ STYLE_PRESETS = [
 ]
 
 
-
-# Tamaños válidos para GPT Image 1 Mini
-SIZE_PRESETS = [
-    ("square_1024",    "1024x1024"),
-    ("portrait_2x3",   "1024x1536"),  # vertical (recomendado para redes)
-    ("landscape_3x2",  "1536x1024"),  # horizontal
+# Tamaños válidos para Gemini (Aspect Ratios)
+ASPECT_RATIOS = [
+    ("portrait_9x16",  "9:16"),   # vertical (recomendado para redes)
+    ("square_1x1",     "1:1"),
+    ("landscape_16x9", "16:9"), # horizontal
 ]
 
-DEFAULT_MODEL = "gpt-image-1-mini"
-DEFAULT_QUALITY = "medium"
+DEFAULT_MODEL = "gemini-2.5-flash-image"
 DEFAULT_VARIATIONS = 1
-OUTPUT_ROOT = "out"
+OUTPUT_ROOT = "out_gemini" # Carpeta de salida diferente
 
 
 # =========================
@@ -200,12 +213,10 @@ OUTPUT_ROOT = "out"
 def pixelize_image(path: pathlib.Path, small_edge: int = 256):
     """
     Hace un downscale fuerte y luego upscale con NEAREST para aumentar el tamaño de píxel.
-    small_edge = tamaño (en píxeles) del lado pequeño tras el downscale.
     """
     try:
         im = Image.open(path).convert("RGBA")
         w, h = im.size
-        # Calcula nueva resolución proporcional con el lado corto = small_edge
         if w <= 0 or h <= 0:
             return
         if w < h:
@@ -215,11 +226,9 @@ def pixelize_image(path: pathlib.Path, small_edge: int = 256):
             new_h = small_edge
             new_w = int(w * (small_edge / h))
 
-        # Downscale (BILINEAR para llegar rápido), luego upscale (NEAREST)
         small = im.resize((max(1, new_w), max(1, new_h)), Image.BILINEAR)
         up = small.resize((w, h), Image.NEAREST)
 
-        # Opcional: ligero posterize/quantize para reforzar paleta limitada
         try:
             up = up.convert("P", palette=Image.ADAPTIVE, colors=48).convert("RGBA")
         except Exception:
@@ -231,22 +240,21 @@ def pixelize_image(path: pathlib.Path, small_edge: int = 256):
 
 
 def ask_scene_text():
-    print("\nDescribe la escena que quieres ilustrar:")
+    print("\nDescribe la escena que quieres ilustrar (para Gemini):")
     scene = input("> ").strip()
     if not scene:
-        scene = ("Un callejón lluvioso a medianoche; una farola rompe la niebla. "
-                 "Un cuervo observa desde una barandilla mientras una figura se aleja.")
+        scene = ("Una figura solitaria, con un abrigo largo y texturizado, está de pie en una plaza de adoquines antiguos. "
+                 "La escena es nocturna y acaba de llover. La única luz proviene de dos fuentes: "
+                 "una farola de gas de hierro forjado que arroja una luz ámbar, y el parpadeo de "
+                 "un letrero de neón rojo de una tienda cercana. Los adoquines están mojados, "
+                 "reflejando ambas luces. Sobre una verja de hierro, un cuervo mecánico observa "
+                 "al espectador. La figura mira directamente a la cámara con una expresión indescifrable.")
+    print(f"\nUsando escena: {scene[:100]}...")
     return scene
 
 
-def ask_transparent_bg():
-    print("\n¿Quieres fondo transparente? (y/N):")
-    ans = input("> ").strip().lower()
-    return ans == "y"
-
-
 def list_styles():
-    print("\n=== ESTILOS DISPONIBLES ===")
+    print("\n=== ESTILOS DISPONIBLES (para Gemini) ===")
     for idx, (name, _) in enumerate(STYLE_PRESETS, start=1):
         print(f"{idx}. {name}")
     print("\nElige uno o varios estilos separando con comas (ej: 1,3,5).")
@@ -264,20 +272,20 @@ def list_styles():
 
 
 def list_formats():
-    print("\n=== FORMATOS DISPONIBLES ===")
-    print("1. Cuadrado (1024x1024)")
-    print("2. Vertical (1024x1536)")
-    print("3. Horizontal (1536x1024)")
+    print("\n=== FORMATOS DISPONIBLES (Aspect Ratios) ===")
+    print("1. Vertical (9:16) - Recomendado")
+    print("2. Cuadrado (1:1)")
+    print("3. Horizontal (16:9)")
     print("4. Todos los formatos")
     raw = input("> ").strip()
     if raw == "1":
-        return [SIZE_PRESETS[0]]
+        return [ASPECT_RATIOS[0]]
     elif raw == "2":
-        return [SIZE_PRESETS[1]]
+        return [ASPECT_RATIOS[1]]
     elif raw == "3":
-        return [SIZE_PRESETS[2]]
+        return [ASPECT_RATIOS[2]]
     else:
-        return SIZE_PRESETS
+        return ASPECT_RATIOS
 
 
 def build_prompt(style_block: str, scene_text: str):
@@ -292,9 +300,12 @@ def build_prompt(style_block: str, scene_text: str):
     )
 
 
-def save_png(b64_png: str, path: pathlib.Path):
+def save_pil_image(pil_image: Image.Image, path: pathlib.Path):
+    """Guarda una imagen PIL en la ruta especificada."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(base64.b64decode(b64_png))
+    # Corrección: Eliminamos el argumento "PNG" redundante.
+    # La librería infiere el formato desde la extensión .png del 'path'.
+    pil_image.save(path)
 
 
 # =========================
@@ -302,18 +313,8 @@ def save_png(b64_png: str, path: pathlib.Path):
 # =========================
 
 def main():
-    load_dotenv()
-    api_key = os.getenv("OPENAI_API_KEY", "").strip()
-    if not api_key:
-        print("❌ No se encontró OPENAI_API_KEY en .env")
-        print("Ejemplo de .env:\nOPENAI_API_KEY=sk-xxxxxxxxxxxxxxxx")
-        return
-
-    client = OpenAI(api_key=api_key)
-
     chosen_style_ids = list_styles()
     scene_text = ask_scene_text()
-    transparent = ask_transparent_bg()
     chosen_formats = list_formats()
 
     print("\n¿Cuántas variaciones por estilo/tamaño quieres generar? (Enter = 1)")
@@ -323,41 +324,65 @@ def main():
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     out_root = pathlib.Path(OUTPUT_ROOT)
 
-    print("\n🎨 Generando imágenes... puede tardar unos minutos.\n")
+    print("\n🎨 Generando imágenes con Google Gemini... puede tardar unos minutos.\n")
 
     for style_idx in chosen_style_ids:
         style_name, style_block = STYLE_PRESETS[style_idx]
         style_slug = slugify(style_name)
 
-        for size_tag, size_val in chosen_formats:
+        for size_tag, aspect_ratio_val in chosen_formats:
             prompt = build_prompt(style_block, scene_text)
 
             for v in range(n_variations):
                 try:
-                    kwargs = {
-                        "model": DEFAULT_MODEL,
-                        "prompt": prompt,
-                        "size": size_val,
-                        "quality": DEFAULT_QUALITY,
-                        "n": 1
-                    }
-                    if transparent:
-                        kwargs["background"] = "transparent"
+                    print(f"   Generando [Gemini]: {style_slug} ({size_tag}) v{v+1}...")
+                    
+                    # --- LLAMADA A GEMINI ---
+                    response = gemini_client.models.generate_content(
+                        model=DEFAULT_MODEL,
+                        contents=[prompt],
+                        config=types.GenerateContentConfig(
+                            response_modalities=["IMAGE"],
+                            image_config=types.ImageConfig(
+                                aspect_ratio=aspect_ratio_val,
+                            ),
+                        ),
+                        # Opcional: añadir configuraciones de seguridad si fueran necesarias
+                        # safety_settings={
+                        #     'HATE': 'BLOCK_NONE',
+                        #     'HARASSMENT': 'BLOCK_NONE',
+                        #     'SEXUAL': 'BLOCK_NONE',
+                        #     'DANGEROUS': 'BLOCK_NONE'
+                        # }
+                    )
 
-                    # Generación de imagen
-                    resp = client.images.generate(**kwargs)
-                    b64 = resp.data[0].b64_json
+                    # --- PROCESAR RESPUESTA DE GEMINI ---
+                    image_saved = False
+                    if hasattr(response, 'parts'):
+                        for part in response.parts:
+                            if hasattr(part, 'inline_data') and part.inline_data is not None:
+                                # Usar el método as_image() para obtener la imagen PIL
+                                pil_image = part.as_image()
+                                
+                                # Guardado
+                                filename = f"{timestamp}_{style_slug}_{size_tag}_v{v+1}.png"
+                                out_path = out_root / style_slug / size_tag / filename
+                                save_pil_image(pil_image, out_path)
+                                print(f"✔ {out_path}")
+                                image_saved = True
 
-                    # Guardado
-                    filename = f"{timestamp}_{style_slug}_{size_tag}_v{v+1}.png"
-                    out_path = out_root / style_slug / size_tag / filename
-                    save_png(b64, out_path)
-                    print(f"✔ {out_path}")
+                                # --- POSTPROCESO para el estilo Pixel Art ---
+                                if "pixel" in style_slug:
+                                    pixelize_image(out_path, small_edge=256)
+                                    print("  ↳ postproceso: pixelize aplicado (downscale + NEAREST)")
+                                
+                                break # Salir del bucle de 'parts'
 
-                    # --- POSTPROCESO para el estilo Pixel Art ---
-                    if "pixel-art" in style_slug or "pixel" in style_slug:
-                        pixelize_image(out_path, small_edge=256)
-                        print("  ↳ postproceso: pixelize aplicado (downscale + NEAREST)")
+                    if not image_saved:
+                        # Manejar el caso donde Gemini no devuelve imagen (ej. bloqueada)
+                        # Imprimir el 'prompt_feedback' si existe
+                        feedback = getattr(response, 'prompt_feedback', 'No feedback')
+                        raise RuntimeError(f"Gemini no devolvió datos de imagen válidos. Feedback: {feedback}")
 
                 except Exception as e:
                     print(f"✖ Error con estilo '{style_name}', tamaño '{size_tag}', variación {v+1}:\n  {e}")
@@ -367,4 +392,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

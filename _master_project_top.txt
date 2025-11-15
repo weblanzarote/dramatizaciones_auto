@@ -1,0 +1,47 @@
+--- ÍNDICE CURADO PARA IA: PROYECTOS VIRALES Y MEDIO VIRALES ---
+
+Este archivo está pensado específicamente para que los modelos de IA generen nuevas ideas basadas en los patrones de los proyectos más exitosos.
+
+==================================================
+🔥 PROYECTOS VIRALES (_v): 11
+==================================================
+
+67_METROMADRID_v: Madrid, última hora de la noche. El metro está a punto de cerrar.
+97_DECIMOTREN_v: Línea 5 del Metro de Madrid. Una de tantas noches. Un joven, escéptico y aburrido, mira en redes una extraña leyenda urbana.
+102_TIRSOMOLINA_v: Miles de personas pasan cada día por la estación de Tirso de Molina en Madrid. Pero muy pocos conocen el oscuro secreto que se esconde tras sus paredes.
+104_METROSUR_v: En el sur de Madrid, bajo barrios y avenidas transitadas, se esconde un secreto poco conocido: las estaciones fantasma del Metrosur.
+108_PALACIOLINARES_v: En pleno centro de Madrid, frente a la Cibeles, se alza un palacio con una historia manchada de sangre.
+144_POLTERGEISTASTURIAS_v: Asturias, año mil novecientos quince. En la pequeña aldea de Rayán, una familia normal estaba a punto de vivir una pesadilla que marcaría la historia del misterio en España.
+150_LAMUSSARA_v: En Tarragona existe un pueblo abandonado donde la niebla nunca se levanta. Un lugar anclado en el tiempo llamado La Mussara.
+156_ALDEAALBUIN_v: En los bosques de Galicia se esconden las ruinas de Abuín. Una aldea abandonada hace más de cuatro siglos, de la que todos sus habitantes huyeron para nunca más volver.
+165_HOMBREPEZ_v: Año mil seiscientos setenta y nueve. Unos pescadores de la bahía de Cádiz capturan algo en sus redes que desafía toda lógica.
+174_SACERDOTEFANTASMA_v: En Santiago de Compostela, cuando cae la noche, una silueta aparece en la Plaza de la Quintana. No es una persona, es un eco del pasado.
+187_MILAGROCALANDA_v: Año mil seiscientos treinta y siete. Miguel Pellicer, un joven jornalero de Calanda, sufre un terrible accidente. Su pierna derecha queda destrozada.
+
+==================================================
+🌪️ PROYECTOS MEDIO VIRALES (_mv): 23
+==================================================
+
+23_ELPAN_mv: En el tranquilo pueblo de Pont-Saint-Esprit, el panadero Roch Briand saca una nueva hornada de pan. El aroma a pan recién hecho llena el aire, una reconfortante normalidad que pronto se hará añicos.
+24_DELCIELO_mv: Juliane volaba sobre la selva con su madre. Una tormenta de verano rugía afuera, pero dentro, todo parecía normal.
+35_TAURED_mv: En un aeropuerto, un hombre mostró un pasaporte de un país que no existe.
+36_MORGUE_mv: Durante años, en París, miles hacían cola para ver cadáveres tras un escaparate. Sí: como si fuera un espectáculo.
+41_PSICOSISWINDIGO_mv: ¿Te imaginas un hambre tan brutal que empezaras a ver a tus seres queridos como comida? No es un cuento de terror. Es una condición real.
+58_PLANETAAURI_mv: Hemos descubierto un mundo con vida. Nuestras sondas nos lo han mostrado sin ningún género de dudas.
+59_EXPERIMENTOPHILADELPHIA_mv: Mil novecientos cuarenta y tres. Segunda Guerra Mundial.
+66_RENNES_mv: Sur de Francia, mil ochocientos ochenta y cinco. Un pequeño y ventoso pueblo llamado Rennes-le-Château se aferra a la cima de una colina, sus antiguas piedras susurrando historias olvidadas por el tiempo.
+75_LARGAMARCHA_mv: Imagina una carrera donde no tienes que correr, solo caminar. Parece sencillo… pero hay una trampa mortal.
+80_ESPEJOHABITACION_mv: Descubrí este viejo espejo en un rincón de un anticuario.
+89_ANTICITERA_mv: Año mil novecientos. Cerca de la isla griega de Anticitera, un grupo de buceadores explora un antiguo naufragio romano hundido hace dos milenios.
+96_EXORCISMO_mv: Existen sesenta y siete cintas de audio que grabaron un exorcismo real. Y lo que contienen es aterrador.
+101_LADRONDERECUERDOS_mv: Último tren de la noche. El traqueteo de las vías es casi hipnótico. Para Laura, es solo el final de un día agotador.
+103_ROCAFORT_mv: Barcelona, estación Rocafort. Una parada más en la línea roja... al menos, para quienes no conocen su historia.
+114_EXPEDIENTEVALLECAS_mv: Hablando de fenómeos extraños, el Expediente Vallecas merece atención a parte.
+124_5CASASENCANTADAS_mv: Estas son las cinco casas más encantadas del mundo.
+166_SANTACOMPAÑA_mv: En el corazón de Galicia, cuando la niebla lo devora todo, una antigua advertencia cobra vida entre los susurros del viento.
+167_ROMASANTA_mv: Galicia, año mil ochocientos cincuenta y dos. Entre la niebla de los bosques de Allariz, se juzga el caso del primer asesino en serie documentado de España.
+173_LEYENDAALDHARA_mv: Hace siglos, en las brumosas tierras de Galicia, vivía en un castillo la joven doncella Aldhara, el orgullo de su padre, el noble Froyás.
+177_MOURAS_mv: En Galicia, las antiguas piedras de los castros susurran leyendas de tesoros ocultos. Y de sus misteriosas guardianas, las Mouras.
+178_PEPALOBA_mv: En la Galicia del siglo diecinueve, una tierra gobernada por la superstición y la injusticia, un nombre era susurrado con una mezcla de miedo y esperanza: Pepa a Loba.
+184_ELTRASGU_mv: En las casas de piedra de Asturias, cuando cae la noche y el viento silba en la chimenea, a veces, las cosas no están donde las dejaste.
+186_HAMBRIENTOTARRARE_mv: Esta es la historia real de un hombre al que el mundo no pudo saciar, y al que la historia apenas puede digerir.

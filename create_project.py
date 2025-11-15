@@ -54,7 +54,6 @@ if RUNWARE_API_KEY:
     except Exception as e:
         print(f"⚠️  Advertencia: Error al inicializar Runware: {e}")
 
-
 # --- 1. GENERACIÓN DE CONTENIDO CREATIVO CON OPENAI (gpt-5.1) ---
 def generate_creative_content(idea: str):
     """Llama a la API de OpenAI (gpt-5.1) para obtener guion, post y texto para redes."""
@@ -62,98 +61,107 @@ def generate_creative_content(idea: str):
 
     # Prompt optimizado para GPT-5.1 con énfasis en calidad narrativa y cinematográfica
     system_prompt = """
-    Eres un guionista experto especializado en narrativas de misterio, terror y contenido paranormal con alto potencial viral.
-    Trabajas para el canal 'Relatos Extraordinarios' y creas historias cortas pero muy cinematográficas, con estructura de novela gráfica.
+Eres un guionista experto en misterio y terror especializado en dramas de audio de corta duración. 
+Tu tarea es generar un objeto JSON con DOS claves de primer nivel:
 
-    Tu tarea es, a partir de una sola idea, generar un objeto JSON con TRES claves de primer nivel:
-    - "script"
-    - "blog_article"
-    - "social_post"
+{
+  "script": "...",
+  "social_post": "..."
+}
 
-    Debes responder EXCLUSIVAMENTE con ese objeto JSON, sin texto adicional.
+Debes responder EXCLUSIVAMENTE con ese JSON válido, sin texto antes o después.
 
-    ------------------------------------------------
-    SECCIÓN 1: "script" – GUION NARRADO CINEMATOGRÁFICO
-    ------------------------------------------------
+=====================================================================
+RULES — PRIORIDAD MÁXIMA
+=====================================================================
+1. Cada bloque del guion debe tener MÁXIMO 15 palabras.
+2. El guion debe tener entre 8 y 14 bloques totales.
+3. Cada bloque debe seguir EXACTAMENTE este formato:
 
-    El valor de "script" será un solo string que contenga varias escenas encadenadas.
+[ETIQUETA_DE_VOZ]
+[imagen:X.png]
+TEXTO DE MÁXIMO 15 PALABRAS
+(línea en blanco obligatoria)
 
-    FORMATO TÉCNICO OBLIGATORIO PARA CADA ESCENA:
-    1. Primera línea: etiqueta del hablante en MAYÚSCULAS, siempre `[NARRADOR]`
-    2. Segunda línea: etiqueta de imagen con este formato exacto: `[imagen:X.mp4]`
-       - X es un número entero en dígitos: 1, 2, 3, 4...
-    3. Tercera línea: texto narrativo completo de la escena (aprox. 12–18 palabras)
-    4. Una línea en blanco antes de empezar la siguiente escena
+4. Cada bloque usa un número de imagen único, secuencial:
+   [imagen:1.png], [imagen:2.png], [imagen:3.png]...
+   No se repiten números.
 
-    PARÁMETROS GLOBALES:
-    - Número de escenas: entre 6 y 10
-    - Longitud total del guion: entre 80 y 140 palabras
-    - Duración objetivo del vídeo: ~60 segundos
-    - En las etiquetas de imagen, usa SIEMPRE dígitos: `[imagen:1.mp4]`, `[imagen:2.mp4]`, etc.
-    - En el texto narrativo, escribe siempre los números con letras (por ejemplo: "mil novecientos cincuenta")
-    - Al FINAL del string del guion, después de la última escena, incluye SIEMPRE una línea con solo: `[CIERRE]`
+5. El guion termina SIEMPRE con una línea final:
+   [CIERRE]
 
-    ESTILO DE ESCRITURA:
-    - Escribe en español natural, fluido, como si alguien contara la historia en voz alta
-    - Usa oraciones completas con verbos conjugados en pasado o presente, no estilo telegráfico
-    - La narración debe sonar bien al leerse en voz alta para una voz en off
-    - Evita repetir las mismas frases de apertura en diferentes guiones
-      (no empieces siempre igual: varía el arranque de la historia)
-    - Evita fórmulas demasiado usadas como "nadie volvió a hablar de aquello" o "nunca volvió a ser el mismo"
+=====================================================================
+VOCES DISPONIBLES
+=====================================================================
+[NARRADOR]
+[CHICO10], [JOVENASUSTADO], [HOMBRE25], [HOMBRE30], [HOMBRE40], [HOMBRE50], [ANCIANO]
+[CHICA12], [MUJER20], [MUJER30], [ANCIANA], [MUJERASUSTADA]
+[DUENDEMALVADO], [MONSTER]
 
-    CONTENIDO NARRATIVO:
-    - Construye una progresión clara: presentación → aumento de tensión → clímax → resolución o giro final
-    - Mantén un elemento o personaje central recurrente para dar coherencia visual a todas las escenas
-    - Crea atmósfera con detalles sensoriales: luces, sombras, sonidos, texturas, temperatura, clima
-    - Describe lo que se ve y se siente dentro de la escena, no técnicas de cámara ni lenguaje técnico audiovisual
-    - Evita los clichés más evidentes del género y busca detalles concretos, extraños o inquietantes que generen intriga
-    - El giro final debe dejar una sensación de duda, inquietud o misterio abierto
+=====================================================================
+REGLAS DE NARRACIÓN
+=====================================================================
+OPCIÓN 1 — SOLO [NARRADOR]:
+Historia completa narrada sin diálogos, solo bloques del narrador.
 
-    -------------------------------------
-    SECCIÓN 2: "blog_article" – ARTÍCULO
-    -------------------------------------
+OPCIÓN 2 — NARRADOR + DIÁLOGOS:
+[NARRADOR] SOLO para descripciones, pensamientos, acciones.
+Otras voces SOLO para palabras habladas en voz alta.
+PROHIBIDO mezclar acción + diálogo en el mismo bloque.
+Cada bloque contiene un único párrafo corto (máx. 15 palabras).
 
-    El valor de "blog_article" será un texto en español que amplíe la historia del guion.
+=====================================================================
+REGLAS DE AMBIENTACIÓN (OBLIGATORIO)
+=====================================================================
+1. EVITAR VIAJES: PROHIBIDO historias sobre coches, carreteras, camioneros, trenes o cualquier viaje largo.
+   La IA de imagen no los genera bien.
+2. PREFERIR LUGARES ESTÁTICOS: Centra la historia en un único lugar atmosférico y fácil de visualizar.
+   El terror debe venir del entorno, no de un viaje.
 
-    REQUISITOS:
-    - Tono mixto: narrativo y ligeramente explicativo, como un artículo que cuenta la leyenda o el caso
-    - Debe dar contexto al lugar, a los personajes o al fenómeno, y profundizar en el misterio
-    - Estructura clara con secciones diferenciadas
+=====================================================================
+NORMAS ADICIONALES
+=====================================================================
+- Todos los números deben escribirse con letras (no 1, 2, 3).
+- El tono debe ser cinematográfico, misterioso e inquietante.
+- Los bloques deben mantener coherencia narrativa y progresión dramática.
+- No incluir más de un concepto o imagen por bloque.
 
-    FORMATO:
-    - Usa títulos de sección con formato compatible con editores de texto y Google Docs, por ejemplo:
-      `## Introducción`, `## La historia`, `## El misterio`, etc.
-    - Longitud orientativa: entre 600 y 1 000 palabras
-    - No menciones que el texto está escrito para un vídeo ni hables del "script" o del "JSON"
+=====================================================================
+SECCIÓN DEL JSON → "script"
+=====================================================================
+Debe generar un único string que contenga todos los bloques del guion
+siguiendo exactamente el formato ya especificado.
 
-    CIERRE DEL ARTÍCULO:
-    - Termina SIEMPRE con una última línea que contenga EXACTAMENTE cinco palabras clave relevantes, separadas por comas, sin almohadillas ni texto adicional.
-    - Ejemplo de formato (no uses estas palabras literalmente):
-      `palabra1, palabra2, palabra3, palabra4, palabra5`
+Ejemplo conceptual del formato (NO copiar literalmente):
+[ETIQUETA]
+[imagen:1.png]
+texto
 
-    --------------------------------------------
-    SECCIÓN 3: "social_post" – TEXTO PARA REDES
-    --------------------------------------------
+[ETIQUETA]
+[imagen:2.png]
+texto
 
-    El valor de "social_post" será un único string en español, pensado para la descripción de TikTok u otras redes.
+...seguir hasta máx. 14 bloques...
+[CIERRE]
 
-    REQUISITOS:
-    - Extensión máxima: 300 caracteres
-    - Debe ser directo, sugerente e intrigante, pero sin revelar del todo el giro final
-    - No puede empezar con estas expresiones: "Te atreves", "Descubre", "Conoces", "Conocías"
-    - Debe incluir SIEMPRE el hashtag `#RelatosExtraordinarios`
-    - Además de `#RelatosExtraordinarios`, añade entre 1 y 4 hashtags adicionales muy relevantes para la historia
-    - Los hashtags deben ir dentro del mismo texto, no en una línea aparte obligatoriamente
+=====================================================================
+SECCIÓN DEL JSON → "social_post"
+=====================================================================
+- Texto único en español, máx. 300 caracteres.
+- Directo, intrigante, en tono de misterio.
+- NO puede empezar con: "Te atreves", "Descubre", "Conoces", "Conocías".
+- Debe contener: #RelatosExtraordinarios + entre 1 y 4 hashtags relevantes.
 
-    -----------------------------------
-    FORMATO FINAL DE LA RESPUESTA JSON
-    -----------------------------------
+=====================================================================
+FORMATO FINAL
+=====================================================================
+Debes responder SOLO con un JSON válido como:
 
-    - Responde SOLO con un objeto JSON válido.
-    - Usa comillas dobles para las claves y los valores de cadenas.
-    - Asegúrate de que el JSON pueda ser parseado sin errores.
-    """
-    
+{"script":"...","social_post":"..."}
+
+Sin explicaciones, sin saltos de línea fuera del JSON, sin texto adicional.
+"""
+
     try:
         response = client.chat.completions.create(
             model="gpt-5.1",
@@ -165,12 +173,19 @@ def generate_creative_content(idea: str):
         )
 
         content = json.loads(response.choices[0].message.content)
-        print("✅ Contenido creativo generado con éxito.")
+
+        # Forzamos .png en el guion al guardarlo, por si acaso
+        if "script" in content:
+            content["script"] = content["script"].replace(".mp4", ".png")
+            
+        print("✅ Contenido creativo generado con éxito (con múltiples voces).")
         return content
 
     except Exception as e:
         print(f"❌ Error al generar contenido con OpenAI (gpt-5.1): {e}")
         return None
+
+
         
 def rewrite_prompt_for_safety(prompt_text: str, client: OpenAI):
     """Llama a un modelo de texto para reescribir un prompt bloqueado."""
@@ -478,6 +493,82 @@ STYLE_PRESETS = [
 ]
 STYLE_NAMES = [n for n, _ in STYLE_PRESETS]
 
+# Pistas para adaptar la idea al estilo visual escogido
+STYLE_IDEA_HINTS = {
+    "Novela Gráfica Oscura (horror gótico cinematográfico)": (
+        "La historia debe sentirse como un cómic adulto de terror gótico: escenas muy visuales, "
+        "con arquitectura dominante (calles estrechas, edificios antiguos, interiores decadentes) "
+        "y momentos congelados en poses potentes. Evita tramas excesivamente intimistas sin "
+        "entorno; el lugar debe ser casi un personaje más."
+    ),
+
+    "Fotorrealismo Cinematográfico (Thriller Moderno)": (
+        "La historia debe situarse en un contexto contemporáneo reconocible: pisos actuales, "
+        "hospitales, oficinas, parkings, bloques de viviendas, portales, centros comerciales. "
+        "El terror debe apoyarse en detalles cotidianos hiperrealistas (luces de emergencia, "
+        "cámaras de seguridad, puertas automáticas, pasillos interminables) y en la sensación "
+        "de estar dentro de una película de thriller moderno."
+    ),
+
+    "Animación Neo-Noir (Estilo 'Arcane')": (
+        "La historia debe encajar en un mundo híbrido entre lo industrial y lo fantástico: "
+        "barrios bajos con talleres, tuberías, fábricas, callejones húmedos, pasarelas elevadas, "
+        "y quizá algún elemento de tecnología extraña o energía misteriosa. Funciona muy bien "
+        "si hay contraste entre zonas ricas y pobres, o entre lo mágico y lo mecánico."
+    ),
+
+    "Óleo Digital Cinematográfico (Terror Clásico)": (
+        "La historia debe recordar al terror gótico clásico: mansiones antiguas, palacios, "
+        "conventos, teatros viejos, cementerios monumentales o salones abarrotados de cuadros. "
+        "El misterio tiene que apoyarse en grandes espacios cargados de historia, tradiciones "
+        "familiares oscuras, maldiciones antiguas o secretos de linaje."
+    ),
+
+    "Grabado Anatómico Victoriano (Códice Maldito)": (
+        "La historia debe encajar con un tono de códice antiguo o manual de anatomía victoriano: "
+        "laboratorios, gabinetes de curiosidades, hospitales viejos, sanatorios, monasterios, "
+        "archivos y bibliotecas polvorientas llenas de láminas, frascos y objetos clasificados. "
+        "Idealmente hay documentos, esquemas, disecciones, diagramas o dibujos que escondan el horror."
+    ),
+
+    "Fotografía Antigua Inquietante (Daguerrotipo)": (
+        "La historia debe ambientarse en una época compatible con fotografías antiguas "
+        "(finales del siglo XIX o principios del XX), o bien en el presente pero girando "
+        "en torno al hallazgo de viejas fotografías, retratos de familia o placas dañadas. "
+        "Evita elementos claramente modernos en la escena principal (móviles, pantallas, redes sociales)."
+    ),
+
+    "Acuarela Gótica (Bruma y Tinta)": (
+        "La historia debe apoyarse en la niebla, la lluvia, la bruma o la oscuridad suave: "
+        "bosques, acantilados, cementerios, pueblos envueltos en niebla, estaciones abandonadas, "
+        "ruinas medio ocultas por la lluvia. El miedo debe surgir de siluetas, sombras difusas y "
+        "figuras que apenas se distinguen entre las manchas de luz y tinta."
+    ),
+
+    "Stop-Motion Macabro (Cuento Táctil)": (
+        "La historia debe poder contarse como un cuento macabro con objetos físicos: muñecos, "
+        "juguetes, marionetas, casas de muñecas, cementerios diminutos, mercados extraños, "
+        "habitaciones llenas de cachivaches. Funciona especialmente bien si hay rituales, "
+        "tradiciones familiares raras o maldiciones ligadas a objetos hechos a mano."
+    ),
+
+    "Vitral Gótico (Luz Oscura)": (
+        "La historia debe funcionar bien como una escena casi iconográfica: composiciones claras, "
+        "centradas y simbólicas. Lugares como iglesias, catedrales, ermitas, altares, órdenes "
+        "secretas o cultos religiosos encajan muy bien. El misterio puede girar en torno a santos, "
+        "milagros, herejías, símbolos repetidos en vidrieras o profecías representadas en cristal."
+    ),
+
+    "Alto Contraste Noir (Siluetas y Sombras)": (
+        "La historia debe poder leerse en blanco y negro extremos: callejones mojados, azoteas, "
+        "despachos con persianas, farolas solitarias, portales, estaciones nocturnas. Ideal para "
+        "tramas urbanas de investigación, secretos, chantajes, encuentros clandestinos o persecuciones "
+        "en penumbra donde las siluetas y las sombras digan más que los detalles."
+    ),
+}
+
+
+
 def build_master_prompt(style_block: str, scene_text: str) -> str:
     return (
         style_block.strip() + "\n\n"
@@ -510,21 +601,17 @@ def interactive_style_selection():
 
 def extract_visual_consistency_brief(script_text: str, client: OpenAI) -> str:
     """
-    Analiza el guión completo y extrae un brief visual de personajes y elementos recurrentes
-    para mantener consistencia absoluta entre todas las imágenes.
-    
-    Esta versión está optimizada para generar instrucciones claras y densas
-    para modelos de imagen como Gemini, SIN usar ejemplos concretos que
-    puedan sesgar el resultado.
+    Analiza el guión completo y extrae un brief visual para CADA PERSONAJE/VOZ
+    recurrente para mantener consistencia absoluta entre todas las imágenes.
     """
-    print("📋 Analizando guión para extraer brief de consistencia visual (versión SIN ejemplos)...")
+    print("📋 Analizando guión para extraer brief de consistencia visual (versión Multi-Voz)...")
 
     try:
-        # Prompt del sistema mejorado, sin ejemplos concretos
+        # Prompt del sistema mejorado para múltiples personajes
         system_prompt = """
     Eres un Director de Arte experto en crear 'Briefs de Consistencia' para secuencias de storyboard.
-    Tu tarea es analizar el guion y definir los elementos visuales RECURRENTES que deben
-    mantenerse idénticos en todas las escenas.
+    Tu tarea es analizar el guion, identificar CADA ETIQUETA DE HABLANTE ÚNICA (ej. [NARRADOR], [ANCIANO], [CHICA12])
+    y definir los elementos visuales RECURRENTES para cada uno.
 
     Tu brief será usado para instruir a un modelo de imagen (Gemini), así que debe ser denso
     en adjetivos visuales, texturales y atmosféricos, inferidos *únicamente* del guion.
@@ -533,35 +620,28 @@ def extract_visual_consistency_brief(script_text: str, client: OpenAI) -> str:
     DIRECTRICES DE FORMATO (MUY IMPORTANTE)
     --------------------------------------------------
 
-    1.  **OMITE LÍNEAS IRRELEVANTES:** Responde *únicamente* con las líneas para las que
-        encuentres información clara en el guion. Si no hay un personaje principal
-        recurrente, *OMITE* toda la línea 'PERSONAJE:'. Si no hay un escenario clave,
-        *OMITE* la línea 'ESCENARIO:'.
-        
-    2.  **NO USES 'N/A':** Nunca escribas 'N/A', 'Ninguno' o 'No aplica'. Simplemente omite
-        la línea correspondiente si no hay nada que añadir.
-
+    1.  **IDENTIFICA TODAS LAS VOCES:** Busca todas las etiquetas como [NARRADOR], [ANCIANO], [MUJER20], etc.
+    2.  **UN BLOQUE POR PERSONAJE:** Debes crear una línea de `PERSONAJE [TAG]` para CADA personaje que aparezca.
     3.  **SÉ HÍPER-ESPECÍFICO:** Usa adjetivos potentes inferidos del tono del guion para
-        describir texturas, materiales, iluminación y emociones.
+        describir texturas, materiales, iluminación y emociones para CADA personaje.
+    4.  **OMITE SI ES IRRELEVANTE:** Si un personaje (como [MONSTER]) es solo una voz y nunca se describe visualmente, puedes omitir su bloque. Pero si se describe (ej. "una sombra con garras"), DEBES incluirlo.
+    5.  **ESCENARIO Y ELEMENTOS:** Sigue describiendo el escenario y los elementos clave como antes.
 
     --------------------------------------------------
     FORMATO DE SALIDA ESTRICTO
     --------------------------------------------------
-    (Usa este formato exacto, rellenando la información INFERIDA del guion)
+    (Usa este formato exacto. Añade una línea `PERSONAJE [TAG]` por CADA personaje visual)
 
-    PERSONAJE: [Describe aquí: Género/Edad aparente, Ropa EXACTA y su estado/textura, Rasgos físicos/pelo distintivos, Actitud o emoción dominante]
+    PERSONAJE [NARRADOR]: [Si el narrador es un personaje visible (1ª persona 'yo', 'mi'), descríbelo: Género/Edad, Ropa, Actitud. Si es una voz omnisciente invisible, omite esta línea.]
+    PERSONAJE [ANCIANO]: [Describe aquí: Género/Edad (anciano), Ropa EXACTA y su estado (ej. "bata raída", "traje antiguo"), Rasgos físicos/pelo, Actitud.]
+    PERSONAJE [CHICA12]: [Describe aquí: Género/Edad (niña 12 años), Ropa EXACTA (ej. "camisón blanco", "abrigo rojo"), Rasgos, Actitud (ej. "asustada").]
+    (Añade más líneas `PERSONAJE [TAG]` para CUALQUIER otro hablante que aparezca en el guion, como [HOMBRE30], [MUJERASUSTADA], etc.)
+
     ESCENARIO: [Describe aquí: Tipo de lugar o vehículo recurrente, Estilo/Época, Estado (nuevo, decrépito...), Textura clave (piedra, metal, madera...)]
     ELEMENTOS CLAVE:
     - [Describe aquí: El tipo de iluminación predominante y su cualidad (ej. dura, suave, color...)]
     - [Describe aquí: La atmósfera general (ej. niebla, polvo, lluvia, tensión...)]
     - [Describe aquí: La paleta de color principal o acentos recurrentes]
-
-    --------------------------------------------------
-    REGLA ESPECIAL (OBLIGATORIA)
-    --------------------------------------------------
-    - Si el guion está narrado en 1ª persona ('yo', 'mi', 'nosotros', 'miro'), *DEBES*
-      crear una descripción visual para el 'PERSONAJE:' narrador. Infiere sus rasgos
-      (edad, ropa, actitud) del contexto y el tono de la narración.
     """
 
         response = client.chat.completions.create(
@@ -572,7 +652,7 @@ def extract_visual_consistency_brief(script_text: str, client: OpenAI) -> str:
                     "content": system_prompt
                 }
 ,
-                {"role": "user", "content": f"Analiza este guión y extrae el brief de consistencia:\n\n{script_text}"}
+                {"role": "user", "content": f"Analiza este guión y extrae el brief de consistencia para todos los personajes:\n\n{script_text}"}
             ]
         )
 
@@ -582,11 +662,11 @@ def extract_visual_consistency_brief(script_text: str, client: OpenAI) -> str:
         brief_lines = [line for line in brief.split('\n') if line.strip()]
         brief = '\n'.join(brief_lines)
 
-        print(f"✅ Brief visual optimizado (sin ejemplos) extraído:\n{brief}\n")
+        print(f"✅ Brief visual multi-personaje extraído:\n{brief}\n")
         return brief
 
     except Exception as e:
-        print(f"⚠️ No se pudo extraer brief visual optimizado: {e}")
+        print(f"⚠️ No se pudo extraer brief visual multi-personaje: {e}")
         # Devolvemos un string vacío seguro para no romper el flujo
         return ""
 
@@ -637,6 +717,16 @@ def generate_visuals_for_script(
 
     # PASO 1: Extraer brief visual específico del guión completo
     visual_brief = extract_visual_consistency_brief(script_text, client)
+    
+    # Guardar el brief visual en un archivo
+    if visual_brief: # Solo guardar si no está vacío
+        try:
+            brief_file_path = os.path.join(project_path, "brief.txt")
+            with open(brief_file_path, "w", encoding="utf-8") as f:
+                f.write(visual_brief)
+            print(f"   💾 Brief visual guardado en: {brief_file_path}")
+        except Exception as e:
+            print(f"   ⚠️  Advertencia: No se pudo guardar el brief.txt: {e}")   
 
     # PASO 2: Crear instrucción de consistencia REFORZADA con brief específico
     consistency_context = f"""
@@ -1059,14 +1149,14 @@ def generate_project_name_from_idea(idea_text: str, client: OpenAI):
         return fallback_name
 
 
-def generate_automatic_idea(client: OpenAI):
-    """Analiza el master list y genera una nueva idea viral usando OpenAI."""
+def generate_automatic_idea(client: OpenAI, style_name: str | None = None):
+    """Analiza el master list y genera una nueva idea viral usando OpenAI, adaptada al estilo visual."""
     print("\n" + "="*70)
     print("🤖 MODO AUTOMÁTICO ACTIVADO")
     print("="*70)
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    master_list_path = os.path.join(script_dir, "_master_project_list.txt")
+    master_list_path = os.path.join(script_dir, "_master_project_top.txt")
 
     if not os.path.exists(master_list_path):
         print(f"❌ Error: No se encontró {master_list_path}")
@@ -1081,59 +1171,139 @@ def generate_automatic_idea(client: OpenAI):
         print(f"❌ Error al leer el archivo: {e}")
         return None
 
+    # Hint opcional según el estilo visual escogido
+    style_hint = ""
+    if style_name:
+        hint = STYLE_IDEA_HINTS.get(style_name)
+        if hint:
+            style_hint = f"\nADAPTACIÓN AL ESTILO VISUAL ELEGIDO:\n- Estilo visual seleccionado: {style_name}.\n- La idea debe ser coherente con este estilo:\n  {hint}\n"
+
     # Crear el prompt para OpenAI
     print("🧠 Analizando proyectos virales y generando nueva idea...")
 
-    system_prompt = """
+    system_prompt = f"""
 Eres un analista de contenido viral experto en la cuenta 'Relatos Extraordinarios'.
 
 Tu tarea es:
-1. Analizar el índice de proyectos proporcionado
-2. Identificar patrones en los proyectos VIRALES (_v) y MEDIO VIRALES (_mv)
+1. Analizar el índice de proyectos proporcionado, que contiene SOLO los proyectos más relevantes
+   (virales y medio virales) en formato resumido.
+2. Identificar patrones de tono, atmósfera, tipo de misterio y construcción de gancho inicial.
 3. Generar UNA SOLA idea original para un nuevo proyecto que:
-   - Siga los patrones de los proyectos virales exitosos
-   - Sea completamente original (no repetir temas ya hechos)
-   - Tenga potencial viral similar
-   - Se centre en misterio, paranormal, leyendas españolas, lugares abandonados o historias extraordinarias
-   - Sea específica y detallada (200-300 palabras)
+   - Siga esos patrones de tensión, atmósfera y misterio.
+   - Sea completamente original (no repetir temas ya hechos).
+   - Tenga alto potencial viral.
+   - Se centre en misterio, paranormal, leyendas españolas, lugares abandonados o historias extraordinarias.
+
+FORMATO DE LA IDEA (MUY IMPORTANTE):
+- La idea debe ser BREVE: entre 1 y 3 frases.
+- Extensión aproximada: entre 30 y 90 palabras.
+- Debe funcionar como una "semilla" potente, no como un relato completo.
+- No desarrolles escenas largas: sugiere más de lo que explicas.
+- No escribas el guion, solo la semilla de concepto.
+
+RESTRICCIONES TEMÁTICAS (OBLIGATORIAS):
+- PROHIBIDO basar la historia en coches, carreteras, autopistas, camioneros, conductores o viajes en vehículo.
+- PROHIBIDO que la escena principal sea una carretera o un viaje nocturno.
+- La historia debe ocurrir en un LUGAR ESTÁTICO o muy acotado:
+  casas, edificios, hospitales, cementerios, bosques, pueblos abandonados, fábricas, túneles, minas, barcos, ruinas, etc.
+
+RESTRICCIONES DE ESTILO (OBLIGATORIAS):
+- NO empieces el texto con "Medianoche", "A medianoche", "Eran las doce", "A las doce" ni variaciones.
+- Varía los comienzos: puedes empezar por una imagen, un sonido, una sensación, un objeto, una regla extraña, etc.
+- No reutilices literalmente nombres de proyectos, lugares o frases completas del índice.
+- Inspírate en los patrones del índice, pero combina los elementos de forma nueva y sorprendente.
+
+{style_hint}
 
 IMPORTANTE:
-- Responde SOLO con la idea del nuevo proyecto, sin explicaciones adicionales
-- La idea debe ser un texto narrativo listo para usar
-- No incluyas títulos ni encabezados, solo el contenido de la idea
-- Debe ser similar en tono y estructura a las ideas existentes en el índice
-"""
+- Responde SOLO con la idea del nuevo proyecto, sin explicaciones adicionales.
+- No incluyas títulos ni encabezados, solo el texto de la idea.
+- El tono debe ser narrativo y sugerente, como tus ejemplos manuales, pero dejando margen para que otro modelo desarrolle el guion.
+""".strip()
+
 
     user_prompt = f"""
-Aquí está el índice completo de proyectos con especial atención a los VIRALES y MEDIO VIRALES al final:
+A continuación tienes un índice curado con los proyectos más exitosos de la cuenta
+(virales y medio virales), cada uno con un breve resumen:
 
 {master_content}
 
-Genera UNA idea original para el siguiente proyecto que tenga alto potencial viral.
-"""
+Genera UNA idea original para el siguiente proyecto que tenga alto potencial viral y
+siga los patrones de misterio y atmósfera de estos ejemplos, sin copiarlos literalmente.
+""".strip()
+
 
     try:
-        response = client.chat.completions.create(
-            model="gpt-5.1",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
+        last_idea = None
+
+        # Hasta 3 intentos por si el modelo insiste con coches / carreteras / medianoches
+        for attempt in range(3):
+            response = client.chat.completions.create(
+                model="gpt-5.1",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ]
+            )
+
+            new_idea = response.choices[0].message.content.strip()
+            last_idea = new_idea
+
+            idea_lower = new_idea.lower()
+
+            # Palabras y temas que queremos evitar en la semilla
+            banned_words = [
+                "carretera", "autopista", "arcén", "arcen",
+                "camión", "camionero", "camioneros",
+                "coche", "coches", "volante",
+                "conducía", "conduce", "conducir",
+                "taxi", "autobús", "autobus",
+                "carretera comarcal", "kilómetro", "km"
             ]
-            # Nota: GPT-5 no admite temperature personalizada, usa el valor por defecto (1)
-        )
 
-        new_idea = response.choices[0].message.content.strip()
+            # Arranques que no queremos repetir
+            bad_starts = [
+                "medianoche", "a medianoche",
+                "eran las doce", "a las doce",
+                "es medianoche"
+            ]
 
-        print("\n" + "="*70)
-        print("💡 NUEVA IDEA GENERADA:")
-        print("="*70)
-        print(new_idea)
-        print("="*70 + "\n")
+            starts_bad = any(idea_lower.startswith(s) for s in bad_starts)
+            contains_banned = any(w in idea_lower for w in banned_words)
 
-        return new_idea
+            # Chequeo de longitud aproximada
+            word_count = len(new_idea.split())
+            longitud_ok = 20 <= word_count <= 120
+
+            if not starts_bad and not contains_banned and longitud_ok:
+                # ✅ Idea válida
+                print("\n" + "="*70)
+                print("💡 NUEVA IDEA GENERADA:")
+                print("="*70)
+                print(new_idea)
+                print("="*70 + "\n")
+                return new_idea
+            else:
+                print("⚠️ Idea con tema o inicio no deseado, o longitud rara. Reintentando...")
+                if starts_bad:
+                    print("   ↳ Motivo: inicio tipo 'medianoche' o similar.")
+                if contains_banned:
+                    print("   ↳ Motivo: referencia a coche/carretera/viaje.")
+                if not longitud_ok:
+                    print(f"   ↳ Motivo: longitud fuera de rango (palabras: {word_count}).")
+
+        # Si después de 3 intentos no conseguimos una idea perfecta, usamos la última pero avisamos
+        print("⚠️ No se pudo obtener una idea que cumpla todas las restricciones tras varios intentos.")
+        if last_idea:
+            print("\nÚltima idea generada (se utilizará de todas formas):")
+            print(last_idea)
+        return last_idea
+
     except Exception as e:
         print(f"❌ Error al generar idea automática: {e}")
         return None
+
+
 
 
 # --- 4. FUNCIÓN PRINCIPAL ORQUESTADORA ---
@@ -1149,8 +1319,12 @@ def main():
     parser.add_argument("--image-quality", default=None,
                         help="Mantenido por compatibilidad, no usado con Gemini.")
     parser.add_argument("--animate-images", action="store_true",
-                        help="Anima las imágenes generadas usando Seedance 1.0 Pro Fast en Runware (864x480, 6s, ~$0.0315 por video - 65%% más barato que Replicate).")
+                        help=("Anima las imágenes generadas usando Seedance 1.0 Pro Fast en Runware "
+                              "(864x480, 6s, ~$0.0315 por video - 65%% más barato que Replicate)."))
     args = parser.parse_args()
+
+    # Para compartir el estilo visual entre la idea automática y la generación de imágenes
+    chosen_style = None
 
     # --- MODO AUTOMÁTICO ---
     # Si no se proporcionó idea ni project-name, activar modo automático
@@ -1162,19 +1336,24 @@ def main():
             print("❌ Error al actualizar el índice de proyectos. Abortando.")
             return
 
-        # 2. Generar idea automáticamente analizando proyectos virales
-        auto_idea = generate_automatic_idea(client)
+        # 2. Elegir estilo visual ANTES de generar la idea automática
+        chosen_style = interactive_style_selection()
+        print(f"✅ Estilo seleccionado para este proyecto: {chosen_style}\n")
+
+        # 3. Generar idea automáticamente analizando proyectos virales y adaptándola al estilo
+        #    (asegúrate de que generate_automatic_idea acepte style_name=None por defecto)
+        auto_idea = generate_automatic_idea(client, style_name=chosen_style)
         if not auto_idea:
             print("❌ Error al generar idea automática. Abortando.")
             return
 
-        # 3. Determinar siguiente número de proyecto
+        # 4. Determinar siguiente número de proyecto
         next_number = get_next_project_number()
 
-        # 4. Generar nombre de proyecto
+        # 5. Generar nombre de proyecto
         project_short_name = generate_project_name_from_idea(auto_idea, client)
 
-        # 5. Construir nombre completo del proyecto
+        # 6. Construir nombre completo del proyecto
         args.idea = auto_idea
         args.project_name = f"{next_number}_{project_short_name}"
 
@@ -1245,8 +1424,13 @@ def main():
             content = {"script": script_content}
 
     # Menú interactivo de estilo visual
-    chosen_style = interactive_style_selection()
-    print(f"✅ Estilo seleccionado: {chosen_style}\n")
+    if chosen_style is None:
+        # Modo manual: no se había escogido estilo aún
+        chosen_style = interactive_style_selection()
+        print(f"✅ Estilo seleccionado: {chosen_style}\n")
+    else:
+        # Modo automático: ya se escogió antes para la idea
+        print(f"✅ Usando estilo visual ya seleccionado: {chosen_style}\n")
 
     # Llamada a la función de imágenes pasando el objeto 'client' para las reescrituras
     success = generate_visuals_for_script(
@@ -1256,7 +1440,7 @@ def main():
         overwrite=args.overwrite_images,
         image_model=args.image_model,
         image_quality=args.image_quality,
-        image_style=chosen_style,   # ← añadido
+        image_style=chosen_style,   # ← sigue igual, pero ahora puede venir del modo auto
     )
 
     if not success:
@@ -1288,9 +1472,6 @@ def main():
                 print("\n✅ Archivo texto.txt actualizado: .png → .mp4")
     else:
         print("\n💡 Tip: Puedes animar las imágenes agregando --animate-images a tu comando")
-
-    # El bloque que modificaba el guion aquí ya no es necesario,
-    # porque nos aseguramos de que siempre trabaje con .png desde el principio.
 
     # Verificar si el video base ya existe
     video_out_path = os.path.join(project_path, "Out", "video.mp4")
@@ -1327,6 +1508,7 @@ def main():
         print(f"❌ Error al ejecutar run.ps1: {e}")
     except FileNotFoundError:
         print(f"❌ Error: 'run.ps1' no encontrado en {run_ps1_path}. Revisa la ruta en el script.")
+
 
 
 if __name__ == "__main__":
