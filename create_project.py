@@ -46,7 +46,7 @@ RUNWARE_API_KEY = os.getenv("RUNWARE_API_KEY")
 runware_available = False
 if RUNWARE_API_KEY:
     try:
-        from runware import Runware, IVideoInference, IFrameImage
+        from runware import Runware, IVideoInference, IFrameImage, IImageInference
         import asyncio
         runware_available = True
     except ImportError:
@@ -54,12 +54,22 @@ if RUNWARE_API_KEY:
     except Exception as e:
         print(f"⚠️  Advertencia: Error al inicializar Runware: {e}")
 
+# --- Constantes para los modelos de Runware ---
+# (Añadidas para la opción de bajo coste)
+QWEN_AIR_ID = "runware:108@1"
+
+NEGATIVE_PROMPT = (
+    "(worst quality, low quality, normal quality, plain, boring, blurry, jpeg artifacts, "
+    "signature, watermark, text, username, error, poorly drawn, malformed, deformed, "
+    "mutated, ugly, duplicate, out of frame, missing items, extra limbs, fused fingers)"
+)
+
 # --- 1. GENERACIÓN DE CONTENIDO CREATIVO CON OPENAI (gpt-5.1) ---
 def generate_creative_content(idea: str):
     """Llama a la API de OpenAI (gpt-5.1) para obtener guion, post y texto para redes."""
     print(f"🧠 Generando contenido creativo con OpenAI (gpt-5.1) para la idea: '{idea}'...")
 
-    # Prompt optimizado para GPT-5.1 con énfasis en calidad narrativa y cinematográfica
+    # Prompt optimizado para GPT-5.1 con protagonista único garantizado
     system_prompt = """
 Eres un guionista experto en misterio y terror especializado en dramas de audio de corta duración. 
 Tu tarea es generar un objeto JSON con DOS claves de primer nivel:
@@ -91,6 +101,18 @@ TEXTO DE MÁXIMO 15 PALABRAS
    [CIERRE]
 
 =====================================================================
+PROTAGONISTA ÚNICO (CONDICIÓN OBLIGATORIA)
+=====================================================================
+- La historia debe girar SIEMPRE alrededor de UN SOLO protagonista principal.
+- Puede ser hombre o mujer, pero debe quedar claro quién es.
+- Este protagonista es el centro narrativo y emocional de la historia.
+- Puede haber personajes secundarios, pero NUNCA debe haber varios protagonistas
+  al mismo nivel ni un grupo coral donde nadie destaque claramente.
+- Si usas diálogos, el protagonista debe tener SIEMPRE la misma etiqueta de voz
+  a lo largo de todo el guion (por ejemplo [HOMBRE30] o [MUJER30]).
+- Evita historias donde el foco cambie de un personaje a otro.
+
+=====================================================================
 VOCES DISPONIBLES
 =====================================================================
 [NARRADOR]
@@ -104,52 +126,42 @@ REGLAS DE NARRACIÓN
 OPCIÓN 1 — SOLO [NARRADOR]:
 Historia completa narrada sin diálogos, solo bloques del narrador.
 
-OPCIÓN 2 — NARRADOR + DIÁLOGOS:
-[NARRADOR] SOLO para descripciones, pensamientos, acciones.
-Otras voces SOLO para palabras habladas en voz alta.
-PROHIBIDO mezclar acción + diálogo en el mismo bloque.
-Cada bloque contiene un único párrafo corto (máx. 15 palabras).
+OPCIÓN 2 — NARRADOR + DIÁLOGOS (REGLAS ESTRICTAS):
+- [NARRADOR] = SOLO para descripciones, pensamientos o acciones.
+- OTRAS VOCES = SOLO para palabras habladas en voz alta.
+- REGLA DE ORO: PROHIBIDO mezclar acción/descripción y diálogo en el mismo bloque.
 
-=====================================================================
-REGLAS DE AMBIENTACIÓN (OBLIGATORIO)
-=====================================================================
-1. EVITAR VIAJES: PROHIBIDO historias sobre coches, carreteras, camioneros, trenes o cualquier viaje largo.
-   La IA de imagen no los genera bien.
-2. PREFERIR LUGARES ESTÁTICOS: Centra la historia en un único lugar atmosférico y fácil de visualizar.
-   El terror debe venir del entorno, no de un viaje.
+- INSTRUCCIÓN CRÍTICA:
+  Si un personaje habla Y se describe su acción (ej: "dijo", "susurró", "murmuró"...),
+  DEBES separarlo en DOS bloques consecutivos:
+  
+  1. Un bloque de DIÁLOGO (ej: [HOMBRE30]) con las palabras habladas.
+  2. Un bloque de NARRACIÓN (ej: [NARRADOR]) describiendo la acción.
+
+- PERMITIDO:
+  - Puedes asignar la MISMA [imagen:X.png] a ambos bloques si ocurren en la misma escena.
+  - Máximo 15 palabras.
 
 =====================================================================
 NORMAS ADICIONALES
 =====================================================================
 - Todos los números deben escribirse con letras (no 1, 2, 3).
 - El tono debe ser cinematográfico, misterioso e inquietante.
-- Los bloques deben mantener coherencia narrativa y progresión dramática.
-- No incluir más de un concepto o imagen por bloque.
+- Cada bloque contiene SOLO un concepto visual claro.
+- Mantén coherencia narrativa y progresión dramática.
 
 =====================================================================
 SECCIÓN DEL JSON → "script"
 =====================================================================
 Debe generar un único string que contenga todos los bloques del guion
-siguiendo exactamente el formato ya especificado.
-
-Ejemplo conceptual del formato (NO copiar literalmente):
-[ETIQUETA]
-[imagen:1.png]
-texto
-
-[ETIQUETA]
-[imagen:2.png]
-texto
-
-...seguir hasta máx. 14 bloques...
-[CIERRE]
+siguiendo exactamente el formato especificado.
 
 =====================================================================
 SECCIÓN DEL JSON → "social_post"
 =====================================================================
 - Texto único en español, máx. 300 caracteres.
 - Directo, intrigante, en tono de misterio.
-- NO puede empezar con: "Te atreves", "Descubre", "Conoces", "Conocías".
+- No puede empezar con: "Te atreves", "Descubre", "Conoces", "Conocías".
 - Debe contener: #RelatosExtraordinarios + entre 1 y 4 hashtags relevantes.
 
 =====================================================================
@@ -174,17 +186,147 @@ Sin explicaciones, sin saltos de línea fuera del JSON, sin texto adicional.
 
         content = json.loads(response.choices[0].message.content)
 
-        # Forzamos .png en el guion al guardarlo, por si acaso
+        # Garantizar que las imágenes se mantengan en PNG
         if "script" in content:
             content["script"] = content["script"].replace(".mp4", ".png")
-            
-        print("✅ Contenido creativo generado con éxito (con múltiples voces).")
+
+        print("✅ Contenido creativo generado con éxito (con protagonista único).")
         return content
 
     except Exception as e:
         print(f"❌ Error al generar contenido con OpenAI (gpt-5.1): {e}")
         return None
 
+
+def generate_visual_prompts_for_script(script_text: str, client: OpenAI) -> list:
+    """
+    Analiza un guion de audio COMPLETO y genera un PROMPT VISUAL
+    cinematográfico para CADA escena [imagen:X.png] encontrada.
+    Usa la etiqueta [PROTAGONISTA] para marcar cuándo aparece la protagonista.
+    """
+    print(f"🎬 Generando prompts visuales con gpt-5.1 para el guion...")
+
+    # Contar cuántas imágenes necesitamos
+    scene_tags = re.findall(r'\[imagen:(\d+)\.png\]', script_text)
+    num_scenes = len(scene_tags)
+    if num_scenes == 0:
+        print("   ❌ No se encontraron etiquetas [imagen:X.png] en el guion.")
+        return []
+
+    print(f"   Encontradas {num_scenes} escenas para describir visualmente.")
+
+    system_prompt = f"""
+Eres un Director de Arte y Director de Fotografía de alto nivel.
+Has recibido un guion de audio COMPLETO que describe una historia continua.
+
+Tu tarea es generar un objeto JSON con UNA sola clave: "visual_prompts".
+Esta clave debe ser una LISTA donde cada elemento es un prompt visual altamente cinematográfico.
+
+=====================================================================
+VISIÓN GLOBAL
+=====================================================================
+Debes concebir TODA la secuencia de imágenes como si fuera una
+PELÍCULA cohesiva. No son ilustraciones independientes: son
+FOTOGRAMAS de una misma narrativa visual.
+
+- Mantén continuidad visual entre escenas (atmósfera, tono, ritmo).
+- Respeta la progresión emocional del guion (tensión, calma, revelación…).
+- Si varias escenas ocurren en el mismo lugar, mantén el mismo estilo
+  de arquitectura, materiales, colores y tipo de luz.
+
+=====================================================================
+USO DE LA ETIQUETA [PROTAGONISTA]
+=====================================================================
+La historia tiene un o una protagonista principal.
+
+- Si el o la protagonista APARECE VISUALMENTE en la imagen de una escena,
+  debes incluir SIEMPRE el marcador exacto [PROTAGONISTA] dentro del texto
+  del prompt.
+
+- Cuando uses [PROTAGONISTA]:
+  * NO describas su rostro, pelo, color de piel u ojos en detalle.
+  * NO describas en detalle su ropa (eso lo controla otro componente).
+  * SÍ puedes describir:
+    - su postura
+    - su gesto general.
+    - su posición en el encuadre.
+    - su relación con el entorno y con otros personajes.
+
+- Si en la escena NO aparece el o la protagonista visualmente:
+  * NO uses el marcador [PROTAGONISTA].
+  * Centra el prompt en el entorno, otros personajes, objetos o atmósfera.
+
+=====================================================================
+REGLAS DE CREACIÓN POR ESCENA
+=====================================================================
+Para cada bloque [imagen:X.png] debes:
+
+1. Leer el guion COMPLETO para entender:
+   - la historia 
+   - el tono general
+   - el arco emocional
+   - la continuidad espacial
+
+2. Analizar el TEXTO del bloque de audio para decidir qué se ve.
+   NO repitas literalmente lo que dice el audio.
+   Describe SOLO lo que se VE.
+
+3. Elegir un encuadre cinematográfico claro:
+   - Plano general / Plano entero / Plano medio / Primer plano / Detalle
+   - y que tenga sentido con el momento emocional del guion.
+
+4. Describir la iluminación con intención narrativa:
+   - tipo de luz, dirección, dureza / suavidad
+   - color y temperatura
+   - sombras (suaves, duras, expresionistas…)
+
+5. Describir el ambiente:
+   - clima, atmósfera
+   - polvo, niebla, lluvia, viento
+   - textura emocional de la escena
+
+=====================================================================
+LONGITUD
+=====================================================================
+Cada prompt visual debe tener APROXIMADAMENTE entre 300 y 600 caracteres.
+
+=====================================================================
+FORMATO DE RESPUESTA
+=====================================================================
+Responde EXCLUSIVAMENTE con el objeto JSON:
+
+{{
+  "visual_prompts": [
+    "Prompt visual detallado para la escena 1...",
+    "Prompt visual detallado para la escena 2...",
+    "Prompt visual detallado para la escena {num_scenes}..."
+  ]
+}}
+"""
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-5.1",
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Guion a analizar:\n\n{script_text}"}
+            ]
+        )
+
+        content = json.loads(response.choices[0].message.content)
+        prompts_list = content.get("visual_prompts", [])
+
+        if len(prompts_list) != num_scenes:
+            print(f"   ❌ ERROR: gpt-5.1 generó {len(prompts_list)} prompts, pero se esperaban {num_scenes}.")
+            return []
+
+        print("✅ Lista de prompts visuales generada con éxito.")
+        return prompts_list
+
+    except Exception as e:
+        print(f"❌ Error al generar prompts visuales con gpt-5.1: {e}")
+        return []
 
         
 def rewrite_prompt_for_safety(prompt_text: str, client: OpenAI):
@@ -325,8 +467,12 @@ def interactive_model_selection():
             sys.exit(0)
 
 
-# ===== ESTILOS DE IMAGEN (presets) =====
-STYLE_PRESETS = [
+# =========================================================================
+# ===== ESTILOS DE IMAGEN (Presets Duales: Gemini y Qwen) =====
+# =========================================================================
+
+# --- BIBLIOTECA 1: PRESETS PARA GEMINI (Largos y detallados) ---
+STYLE_PRESETS_GEMINI = [
     ("Novela Gráfica Oscura (horror gótico cinematográfico)", textwrap.dedent("""\
     Ilustración estilo novela gráfica moderna y cómic de autor, con estética de horror gótico cinematográfico.
 
@@ -352,7 +498,7 @@ STYLE_PRESETS = [
     - Todas las imágenes deben sentirse parte del mismo universo visual oscuro
     """).strip()),
 
-("Fotorrealismo Cinematográfico (Thriller Moderno)", textwrap.dedent("""\
+    ("Fotorrealismo Cinematográfico (Thriller Moderno)", textwrap.dedent("""\
     Estilo fotorrealista cinematográfico, como un fotograma de una película de thriller contemporáneo (estilo David Fincher o A24).
 
     Características visuales esenciales:
@@ -491,7 +637,102 @@ STYLE_PRESETS = [
     - Si se usa un color de acento, debe ser el mismo y usarse con el mismo propósito
     """).strip()),
 ]
-STYLE_NAMES = [n for n, _ in STYLE_PRESETS]
+
+STYLE_PRESETS_QWEN = [
+    (
+        "Dark Graphic Novel (Cinematic Gothic Horror)",
+        textwrap.dedent("""\
+        Dark cinematic graphic novel art by Mike Mignola. Heavy inked lines, deep black shadows, gothic horror atmosphere.
+        Limited palette: deep blacks, cool grays, midnight blues with blood-red accents.
+        Extreme chiaroscuro lighting, deep vignetting, film noir composition, dramatic panel framing.
+        """).strip()
+    ),
+
+    (
+        "Cinematic Photorealism (Modern Thriller)",
+        textwrap.dedent("""\
+        Shot on ARRI Alexa with 35mm lens, modern thriller cinematography. Low-key lighting with motivated practical lights.
+        Desaturated cold palette (industrial blues, urban greens, concrete grays) with wet skin and surface reflections.
+        Subtle film grain, shallow DOF, anamorphic lens flares, professional color grading.
+        """).strip()
+    ),
+
+    (
+        "Neo-Noir Animation (Arcane Style)",
+        textwrap.dedent("""\
+        2D/3D hybrid animation style like Arcane series. Hand-painted brushstroke texture, angular ink outlines.
+        Volumetric light rays piercing through smoke and dust, dramatic atmospheric perspective.
+        Dual-tone palette: desaturated dark backgrounds vs intense neon lights, cyberpunk noir mood.
+        """).strip()
+    ),
+
+    (
+        "Cinematic Digital Oil (Classic Horror)",
+        textwrap.dedent("""\
+        Digital oil painting with visible canvas weave and thick impasto technique. Caravaggio-inspired extreme chiaroscuro.
+        Rich palette: deep blood reds, intense indigo, earthy ochres, antique golds. Heavy, oppressive atmosphere.
+        Visible brushwork, palette knife texture, classical Baroque horror composition.
+        """).strip()
+    ),
+
+    (
+        "Victorian Anatomical Engraving (Cursed Codex)",
+        textwrap.dedent("""\
+        Precision technical drawing on blueprint paper. 
+        White lines on Prussian blue background, measured annotations in Helvetica font. 
+        Isometric projection, draftman's pencil texture, registration marks, fold creases visible.
+        """).strip()
+    ),
+
+    (
+        "Unsettling Vintage Photography (Daguerreotype)",
+        textwrap.dedent("""\
+        19th century daguerreotype simulation. Monochromatic silver-gelatin process with cold metallic tones.
+        High grain, glass plate scratches, chemical stains, strong vignetting, reduced depth of field.
+        Static pose, direct serious gaze, found photograph aesthetic, corner mounting marks visible.
+        """).strip()
+    ),
+
+    (
+        "Gothic Watercolor (Mist and Ink)",
+        textwrap.dedent("""\
+        Dark atmospheric watercolor on cold-pressed paper. Wet-on-wet technique with bleeding edges.
+        Grisaille palette (blacks, grays) with touches of deep indigo and crimson. Dominant mist effect.
+        Visible paper texture, loose ink outlines, gothic literature illustration mood.
+        """).strip()
+    ),
+
+    (
+        "Macabre Stop-Motion (Tactile Tale)",
+        textwrap.dedent("""\
+        Laika/Tim Burton stop-motion style. Tactile materials: clay fingerprints, fabric texture, aged wood and metal.
+        Exaggerated proportions (large eyes, thin limbs), visible armature wire, handcrafted imperfections.
+        Theatrical studio lighting, miniature set depth, physical paint brushstroke texture.
+        """).strip()
+    ),
+
+    (
+        "Gothic Stained Glass (Dark Light)",
+        textwrap.dedent("""\
+        Gothic cathedral stained glass window design. Jewel-toned colors (ruby, sapphire, emerald, amber).
+        Thick black lead came lines separating color planes, stylized flat design with formal symmetry.
+        Strong backlit illumination, light refraction effects, medieval religious art composition.
+        """).strip()
+    ),
+
+    (
+        "High-Contrast Noir (Silhouettes and Shadows)",
+        textwrap.dedent("""\
+        Sin City-style graphic novel noir. Pure black and white only, no mid-tones or grays.
+        Shadows as solid black masses, extreme negative space defining silhouettes.
+        Graphic angular composition, single intense color accent (blood red) for dramatic emphasis.
+        """).strip()
+    ),
+]
+
+
+# --- NOMBRE DE ESTILOS (Común a ambas listas) ---
+STYLE_NAMES = [n for n, _ in STYLE_PRESETS_GEMINI]
 
 # Pistas para adaptar la idea al estilo visual escogido
 STYLE_IDEA_HINTS = {
@@ -579,6 +820,89 @@ def build_master_prompt(style_block: str, scene_text: str) -> str:
         "Escena específica a ilustrar:\n" + scene_text.strip()
     )
 
+def _build_runware_prompt(style_block: str, scene_text: str, consistency_context: str, max_length: int = 1850) -> str:
+    """
+    Construye el prompt positivo para Runware/Qwen de forma compacta
+    y garantiza que no supere max_length caracteres (margen de seguridad
+    por debajo del límite de 1900 de Runware).
+
+    Prioridad de preservación:
+    1) Texto de la escena (scene_text)
+    2) Contexto de consistencia
+    3) Estilo visual
+    """
+    ratio_hint = "9:16 portrait, vertical aspect ratio"
+
+    # Normalizamos textos
+    scene_text = scene_text.strip()
+    consistency_context = (consistency_context or "").strip()
+    style_block = (style_block or "").strip()
+
+    # Construimos en bloques
+    header = f"(masterpiece, best quality, ultra-detailed), {ratio_hint}.\n\n"
+    body_scene = scene_text + "\n\n"
+    body_context = (consistency_context + "\n\n") if consistency_context else ""
+    body_style = style_block
+
+    # Ensamblado inicial
+    final_prompt = header + body_scene + body_context + body_style
+
+    # Si ya cabe, lo devolvemos tal cual
+    if len(final_prompt) <= max_length:
+        return final_prompt
+
+    # --- 1) Intentar recortar ESTILO ---
+    # No recortamos la escena ni el header.
+    # Solo tocamos body_style y, si hace falta, body_context.
+    def trim_text_at_sentence(text: str, target_len: int) -> str:
+        """
+        Recorta aproximadamente al target_len buscando un final de frase
+        o espacio cercano, y añade '...'.
+        """
+        if len(text) <= target_len:
+            return text
+        cut = text[:target_len]
+        # Intentamos cortar en el último punto o espacio
+        for sep in [".", "!", "?", " "]:
+            pos = cut.rfind(sep)
+            if pos > int(target_len * 0.6):  # que no corte demasiado pronto
+                cut = cut[:pos+1]
+                break
+        return cut.rstrip() + "..."
+
+    # Recalculamos longitud y recortamos progresivamente
+    def rebuild_prompt(ctx: str, style: str) -> str:
+        parts = [header, body_scene]
+        if ctx:
+            parts.append(ctx + "\n\n")
+        if style:
+            parts.append(style)
+        return "".join(parts)
+
+    # Paso 1: recortar estilo si es largo
+    final_prompt = rebuild_prompt(body_context, body_style)
+    if len(final_prompt) > max_length and body_style:
+        exceso = len(final_prompt) - max_length
+        # Dejamos como mínimo unas ~300–400 chars para estilo si era muy largo
+        target_len = max(0, len(body_style) - exceso)
+        target_len = max(250, target_len)  # nunca bajamos de ~250 chars de estilo
+        body_style = trim_text_at_sentence(body_style, target_len)
+        final_prompt = rebuild_prompt(body_context, body_style)
+
+    # Paso 2: si aún se pasa, recortar también el contexto
+    if len(final_prompt) > max_length and body_context:
+        exceso = len(final_prompt) - max_length
+        target_len = max(200, len(body_context) - exceso)
+        body_context = trim_text_at_sentence(body_context, target_len)
+        final_prompt = rebuild_prompt(body_context, body_style)
+
+    # Paso 3: por si acaso, clamp duro (no tocamos scene_text)
+    if len(final_prompt) > max_length:
+        final_prompt = final_prompt[:max_length].rstrip()
+
+    return final_prompt
+
+    
 def interactive_style_selection():
     print("\n" + "="*70)
     print("🎨 ESTILO VISUAL")
@@ -599,202 +923,391 @@ def interactive_style_selection():
             print("❌ Introduce un número.")
 
 
-def extract_visual_consistency_brief(script_text: str, client: OpenAI) -> str:
+def extract_visual_consistency_brief(script_text: str, client: OpenAI, model_type: str = "gemini"):
     """
-    Analiza el guión completo y extrae un brief visual para CADA PERSONAJE/VOZ
-    recurrente para mantener consistencia absoluta entre todas las imágenes.
+    Analiza el guion completo y extrae un brief visual de consistencia,
+    DEVOLVIENDO SIEMPRE UN DICCIONARIO con estas claves:
+
+    {
+        "character": "...",
+        "environment": "...",
+        "lighting": "...",
+        "objects": "..."
+    }
+
+    - Para 'gemini' puede ser algo más largo.
+    - Para 'qwen' será muy compacto (pensado para prompts cortos).
     """
-    print("📋 Analizando guión para extraer brief de consistencia visual (versión Multi-Voz)...")
+    print(f"📋 Analizando guión para extraer brief de consistencia (Modo: {model_type})...")
+
+    # --- PROMPT PARA GEMINI (Detallado, pero estructurado en JSON) ---
+    system_prompt_gemini = """
+Eres director de arte. Debes crear un 'visual brief' MUY CONCRETO para que un modelo de imágenes
+mantenga consistencia visual en toda la historia.
+
+Lee el guion y responde EXCLUSIVAMENTE con un JSON válido de esta forma:
+
+{
+  "character": "Descripción del personaje principal (si lo hay). Puede estar vacío si no es relevante.",
+  "environment": "Descripción del escenario o ubicación recurrente.",
+  "lighting": "Descripción de la iluminación y atmósfera general (paleta, tono).",
+  "objects": "Objetos o símbolos que deban ser consistentes."
+}
+
+REGLAS IMPORTANTES:
+- NO añadas más claves.
+- NO añadas comentarios ni texto fuera del JSON.
+- Si el guion está narrado en primera persona, asume que esa voz es el personaje principal.
+- No uses opciones tipo "o", "/" ni alternativas. Fija una sola versión de cada cosa.
+"""
+
+    # --- PROMPT PARA QWEN (Muy compacto, también en JSON) ---
+    system_prompt_qwen = """
+Eres director de arte para un modelo de imágenes con límite de tokens.
+
+Lee el guion y responde SOLO con un JSON válido:
+
+{
+  "character": "...",
+  "environment": "...",
+  "lighting": "...",
+  "objects": "..."
+}
+
+REGLAS:
+- Máxima prioridad: "character" debe describir de forma muy específica al personaje principal
+  (edad aproximada, género, rasgos de cara, color y peinado de pelo, ropa FIJA, colores exactos).
+- "environment": resume el tipo de lugar principal y su estado (nuevo, gastado, hospital, bosque, etc.).
+- "lighting": resume la atmósfera (oscuro, frío, neón, velas, etc.).
+- "objects": solo si hay elementos recurrentes (libro, foto, cruz, caja, etc.), si no, pon cadena vacía.
+- No escribas nada fuera del JSON.
+"""
+
+    if model_type == "qwen":
+        final_system_prompt = system_prompt_qwen
+        print("   (Usando brief corto estructurado para Qwen/Runware)")
+    else:
+        final_system_prompt = system_prompt_gemini
+        print("   (Usando brief estructurado para Gemini)")
 
     try:
-        # Prompt del sistema mejorado para múltiples personajes
-        system_prompt = """
-    Eres un Director de Arte experto en crear 'Briefs de Consistencia' para secuencias de storyboard.
-    Tu tarea es analizar el guion, identificar CADA ETIQUETA DE HABLANTE ÚNICA (ej. [NARRADOR], [ANCIANO], [CHICA12])
-    y definir los elementos visuales RECURRENTES para cada uno.
-
-    Tu brief será usado para instruir a un modelo de imagen (Gemini), así que debe ser denso
-    en adjetivos visuales, texturales y atmosféricos, inferidos *únicamente* del guion.
-
-    --------------------------------------------------
-    DIRECTRICES DE FORMATO (MUY IMPORTANTE)
-    --------------------------------------------------
-
-    1.  **IDENTIFICA TODAS LAS VOCES:** Busca todas las etiquetas como [NARRADOR], [ANCIANO], [MUJER20], etc.
-    2.  **UN BLOQUE POR PERSONAJE:** Debes crear una línea de `PERSONAJE [TAG]` para CADA personaje que aparezca.
-    3.  **SÉ HÍPER-ESPECÍFICO:** Usa adjetivos potentes inferidos del tono del guion para
-        describir texturas, materiales, iluminación y emociones para CADA personaje.
-    4.  **OMITE SI ES IRRELEVANTE:** Si un personaje (como [MONSTER]) es solo una voz y nunca se describe visualmente, puedes omitir su bloque. Pero si se describe (ej. "una sombra con garras"), DEBES incluirlo.
-    5.  **ESCENARIO Y ELEMENTOS:** Sigue describiendo el escenario y los elementos clave como antes.
-
-    --------------------------------------------------
-    FORMATO DE SALIDA ESTRICTO
-    --------------------------------------------------
-    (Usa este formato exacto. Añade una línea `PERSONAJE [TAG]` por CADA personaje visual)
-
-    PERSONAJE [NARRADOR]: [Si el narrador es un personaje visible (1ª persona 'yo', 'mi'), descríbelo: Género/Edad, Ropa, Actitud. Si es una voz omnisciente invisible, omite esta línea.]
-    PERSONAJE [ANCIANO]: [Describe aquí: Género/Edad (anciano), Ropa EXACTA y su estado (ej. "bata raída", "traje antiguo"), Rasgos físicos/pelo, Actitud.]
-    PERSONAJE [CHICA12]: [Describe aquí: Género/Edad (niña 12 años), Ropa EXACTA (ej. "camisón blanco", "abrigo rojo"), Rasgos, Actitud (ej. "asustada").]
-    (Añade más líneas `PERSONAJE [TAG]` para CUALQUIER otro hablante que aparezca en el guion, como [HOMBRE30], [MUJERASUSTADA], etc.)
-
-    ESCENARIO: [Describe aquí: Tipo de lugar o vehículo recurrente, Estilo/Época, Estado (nuevo, decrépito...), Textura clave (piedra, metal, madera...)]
-    ELEMENTOS CLAVE:
-    - [Describe aquí: El tipo de iluminación predominante y su cualidad (ej. dura, suave, color...)]
-    - [Describe aquí: La atmósfera general (ej. niebla, polvo, lluvia, tensión...)]
-    - [Describe aquí: La paleta de color principal o acentos recurrentes]
-    """
-
         response = client.chat.completions.create(
-            model="gpt-5.1", 
+            model="gpt-5.1",
+            response_format={"type": "json_object"},
             messages=[
-                {
-                    "role": "system",
-                    "content": system_prompt
-                }
-,
-                {"role": "user", "content": f"Analiza este guión y extrae el brief de consistencia para todos los personajes:\n\n{script_text}"}
+                {"role": "system", "content": final_system_prompt},
+                {"role": "user", "content": f"Guion a analizar:\n\n{script_text}"}
             ]
         )
-
-        brief = response.choices[0].message.content.strip()
-        
-        # Pequeña limpieza por si acaso gpt-5.1 añade líneas vacías extra
-        brief_lines = [line for line in brief.split('\n') if line.strip()]
-        brief = '\n'.join(brief_lines)
-
-        print(f"✅ Brief visual multi-personaje extraído:\n{brief}\n")
-        return brief
+        brief_dict = json.loads(response.choices[0].message.content)
+        print(f"✅ Brief visual estructurado ({model_type}) extraído:\n{brief_dict}\n")
+        return brief_dict
 
     except Exception as e:
-        print(f"⚠️ No se pudo extraer brief visual multi-personaje: {e}")
-        # Devolvemos un string vacío seguro para no romper el flujo
+        print(f"⚠️ No se pudo extraer brief visual estructurado: {e}")
+        # Fallback: devolver estructura vacía
+        return {
+            "character": "",
+            "environment": "",
+            "lighting": "",
+            "objects": ""
+        }
+
+def ensure_brief_dict(brief) -> dict:
+    """
+    Garantiza que el brief sea siempre un dict con las claves esperadas.
+    Si viene como string o vacío, lo convierte a una estructura estándar.
+    """
+    default = {
+        "character": "",
+        "environment": "",
+        "lighting": "",
+        "objects": ""
+    }
+
+    if not brief:
+        return default
+
+    if isinstance(brief, dict):
+        merged = default.copy()
+        merged.update({k: v for k, v in brief.items() if k in default})
+        return merged
+
+    # Si por lo que sea llega un string, lo metemos en 'character' como fallback
+    default["character"] = str(brief)
+    return default
+
+
+def classify_scene_for_brief(scene_audio: str):
+    """
+    Dado el TEXTO DE AUDIO asociado a una escena, decide qué partes del brief
+    tienen sentido para esa imagen.
+
+    Devuelve un dict de flags:
+    {
+        "include_character": bool,
+        "include_environment": bool,
+        "include_objects": bool
+    }
+
+    'lighting' se aplica SIEMPRE desde el brief (es barato y ayuda a la coherencia).
+    """
+    text = (scene_audio or "").lower()
+
+    # Muy simple, pero efectivo. Puedes tunearlo luego.
+    character_tokens = [
+        "él ", "ella ", "hombre", "mujer", "niño", "niña", "joven",
+        "señor", "señora", "anciano", "anciana", "yo ", "mi ", "me ",
+        "narrador", "protagonista"
+    ]
+    environment_tokens = [
+        "habitación", "pasillo", "bosque", "calle", "casa", "piso", "sótano",
+        "hospital", "clínica", "escuela", "parque", "cementerio", "iglesia",
+        "plaza", "cocina", "salón", "dormitorio", "carretera", "túnel"
+    ]
+    object_tokens = [
+        "foto", "fotografía", "retrato", "caja", "libro", "diario", "llave",
+        "puñal", "muñeca", "cajón", "cámara", "teléfono", "cinta",
+        "cruz", "medalla", "collar"
+    ]
+
+    include_character = any(tok in text for tok in character_tokens)
+    include_environment = any(tok in text for tok in environment_tokens)
+    include_objects = any(tok in text for tok in object_tokens)
+
+    return {
+        "include_character": include_character,
+        "include_environment": include_environment,
+        "include_objects": include_objects,
+    }
+
+
+def build_consistency_context_for_scene(
+    brief_dict: dict,
+    include_character: bool,
+    include_environment: bool,
+    include_objects: bool,
+    total_scenes: int
+) -> str:
+    """
+    Construye un BRIEF muy compacto para esta escena.
+    Formato tipo etiqueta: valor, sin títulos largos.
+    """
+    parts = []
+
+    if include_character and brief_dict.get("character"):
+        parts.append(f"personaje_principal: {brief_dict['character']}")
+    if include_environment and brief_dict.get("environment"):
+        parts.append(f"escenario: {brief_dict['environment']}")
+    if brief_dict.get("lighting"):
+        # La iluminación ayuda mucho a la coherencia, la mantenemos siempre
+        parts.append(f"iluminacion: {brief_dict['lighting']}")
+    if include_objects and brief_dict.get("objects"):
+        parts.append(f"objetos_recurrentes: {brief_dict['objects']}")
+
+    # Unimos todo en una sola frase de contexto
+    if parts:
+        return "contexto_consistencia: " + " | ".join(parts)
+    else:
         return ""
 
 
-# --- 2. GENERACIÓN DE IMÁGENES CON GOOGLE GEMINI ---
-# --- VERSIÓN CON CONSISTENCIA DE PERSONAJES ---
-def generate_visuals_for_script(
-    script_text: str,
+# --- 2. GENERACIÓN DE IMÁGENES (Router: Gemini o Runware) ---
+
+async def _generate_visuals_runware_async(
+    visual_prompts_list: list,
+    audio_scenes_list: list,
+    scene_contexts_list: list,  # 🔹 NUEVO
     project_path: str,
-    client: OpenAI,  # Mantenemos para compatibilidad (usado para reescrituras)
-    overwrite: bool = False,
-    image_model: str = "gemini-2.5-flash-image",
-    image_quality: str = "standard",
-    image_style: str = None,
+    style_block: str,
+    overwrite: bool,
+    style_slug_for_pixelize: str
 ):
     """
-    Genera imágenes para el guion usando Google Gemini con consistencia de personajes.
-
-    La primera imagen establece el estilo visual y personajes base.
-    Las imágenes siguientes mantienen automáticamente la consistencia visual.
-
-    Args:
-        script_text: El texto del guion con las etiquetas [imagen:N.png]
-        project_path: Ruta al directorio del proyecto
-        client: Cliente de OpenAI (usado para reescrituras de prompts si es necesario)
-        overwrite: Si es True, regenera imágenes existentes. Si es False, las salta.
-        image_model: Modelo de Gemini (gemini-2.5-flash-image o gemini-2.0-flash-exp)
-        image_quality: No usado en Gemini, mantenido para compatibilidad
-        image_style: Nombre del estilo a aplicar (de STYLE_NAMES). Si None, usa el primero.
+    Función ASYNC interna para generar imágenes con Runware (Qwen-Image).
+    MODIFICADA: Acepta una lista de prompts visuales generados por IA.
     """
-    print(f"🎨 Generando imágenes con Google Gemini (consistencia de personajes)...")
-    print(f"   Modelo: {image_model}")
+    print(f"🎨 Generando imágenes con Runware (Opción ahorro: Qwen-Image)...")
+    print(f"   Modelo: Qwen-Image ({QWEN_AIR_ID})")
+    print(f"   Parámetros: CFGScale=2.5, Steps=20")
 
-    # Estilo elegido
-    if not image_style:
-        image_style = STYLE_NAMES[0]
-    style_block = next((b for n, b in STYLE_PRESETS if n == image_style), STYLE_PRESETS[0][1])
-    print(f"   Estilo: {image_style}")
-
-    # Extraer escenas
-    scenes = re.findall(r'\[imagen:\d+\.png\]\s*(.*?)(?=\n\s*\[|$)', script_text, re.DOTALL)
-    if not scenes:
-        print("\n❌ ERROR CRÍTICO: No se encontraron descripciones de escenas en el guion.")
-        return False
-
+    runware = None
     all_images_successful = True
-    MAX_RETRIES = 5  # intentos por imagen
-
-    # PASO 1: Extraer brief visual específico del guión completo
-    visual_brief = extract_visual_consistency_brief(script_text, client)
     
-    # Guardar el brief visual en un archivo
-    if visual_brief: # Solo guardar si no está vacío
-        try:
-            brief_file_path = os.path.join(project_path, "brief.txt")
-            with open(brief_file_path, "w", encoding="utf-8") as f:
-                f.write(visual_brief)
-            print(f"   💾 Brief visual guardado en: {brief_file_path}")
-        except Exception as e:
-            print(f"   ⚠️  Advertencia: No se pudo guardar el brief.txt: {e}")   
+    try:
+        # Conectar a Runware
+        runware = Runware(api_key=RUNWARE_API_KEY)
+        await runware.connect()
+        print("\n✅ Conectado a Runware API para generación de imágenes.")
 
-    # PASO 2: Crear instrucción de consistencia REFORZADA con brief específico
-    consistency_context = f"""
-CONSISTENCIA VISUAL ABSOLUTA - OBLIGATORIO:
+        # --- CAMBIO: Iteramos sobre la lista de prompts visuales ---
+        for i, visual_prompt in enumerate(visual_prompts_list):
+            
+            # Obtenemos datos de la escena para los logs y el nombre de archivo
+            image_id = f"{i+1}.png"
+            audio_text = audio_scenes_list[i] if i < len(audio_scenes_list) else "" # Texto de audio para el log
 
-Esta imagen es parte de una secuencia de {len(scenes)} escenas. TODOS los elementos visuales recurrentes
-deben mantenerse IDÉNTICOS en cada escena.
+            print(f"🖼️  Generando imagen {image_id} (Audio: '{audio_text[:40]}...'):")
+            print(f"   Llamando con Visual Prompt: '{visual_prompt[:60]}...'")
+            image_path = os.path.join(project_path, "images", image_id)
+            os.makedirs(os.path.dirname(image_path), exist_ok=True)
 
-{visual_brief}
+            if os.path.exists(image_path) and not overwrite:
+                print(f"   ✓ Imagen {image_id} ya existe, saltando generación.")
+                continue
 
-INSTRUCCIONES CRÍTICAS:
-- Si el personaje está definido arriba, DEBE aparecer con EXACTAMENTE esa apariencia en TODAS las escenas donde aparezca
-- Si el vehículo/escenario está definido arriba, DEBE ser EXACTAMENTE ese en TODAS las escenas
-- NO cambies: ropa, accesorios, tipo de barco, edad aparente, rasgos faciales, color de ojos/pelo
-- Mantén el mismo estilo visual, iluminación, paleta de colores en toda la secuencia
-- Si algo no está especificado en el brief, manténlo coherente con las demás imágenes de la secuencia
+            image_generated = False
+            
+            try:
+                # --- CAMBIO: Usamos el 'visual_prompt' en lugar de 'clean_text' ---
+                scene_context = ""
+                if scene_contexts_list and i < len(scene_contexts_list):
+                    scene_context = scene_contexts_list[i]
 
-Contexto de la historia completa:
-{' '.join([s.strip()[:80] for s in scenes[:3]])}...
-"""
-    print(f"   📖 Brief de consistencia aplicado a {len(scenes)} escenas")
+                final_prompt = _build_runware_prompt(style_block, visual_prompt, scene_context, max_length=1850)
 
-    for i, scene_text in enumerate(scenes, 1):
-        clean_text = scene_text.strip()
+
+                # --- INICIO: Log de depuración (Tu código de la L. 1119) ---
+                prompt_length = len(final_prompt)
+                print("\n" + "="*80)
+                print(f"   DEBUG: Preparando prompt para Qwen (Escena {i+1})")
+                print(f"   LONGITUD TOTAL: {prompt_length} caracteres (Límite: 1900)")
+                if prompt_length > 1900:
+                    print("   !!!!!!!!!! ALERTA: EL PROMPT SUPERA EL LÍMITE !!!!!!!!!")
+                print("="*80)
+                print(final_prompt) # Imprimir el prompt completo
+                print("="*80 + "\n")
+                # --- FIN: Log de depuración ---
+
+                # Parámetros de Runware
+                params = {
+                    "positivePrompt": final_prompt,
+                    "negativePrompt": NEGATIVE_PROMPT,
+                    "model": QWEN_AIR_ID,
+                    "width": 768,   # 9:16
+                    "height": 1344, # 9:16
+                    "numberResults": 1,
+                    "includeCost": True,
+                    "CFGScale": 2.5,
+                    "steps": 20
+                }
+
+                request = IImageInference(**params)
+                images = await runware.imageInference(requestImage=request)
+
+                if not images:
+                    raise RuntimeError("La API de Runware no devolvió imágenes.")
+
+                # Procesar respuesta
+                image_res = images[0]
+                image_url = image_res.imageURL
+                cost = image_res.cost if hasattr(image_res, 'cost') and image_res.cost else "N/A"
+
+                # Descargar y guardar la imagen
+                response = requests.get(image_url, timeout=120)
+                response.raise_for_status()
+                with open(image_path, "wb") as f:
+                    f.write(response.content)
+
+                # Postproceso: Pixel Art
+                if "pixel" in style_slug_for_pixelize:
+                    pixelize_image(image_path, small_edge=256)
+                    print("   ↳ postproceso: pixelize aplicado (downscale + NEAREST)")
+
+                cost_str = f" (Coste: ${cost})" if cost != "N/A" else ""
+                print(f"   ✔ Guardada: {image_path}{cost_str}")
+                image_generated = True
+
+            except Exception as e:
+                # --- CAMBIO: Usamos 'i+1' para el log de error ---
+                print(f"❌ Error en escena {i+1} (Runware): {e}") 
+                if "1900 characters" in str(e):
+                    print("   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                    print("   ERROR: El prompt ha superado los 1900 caracteres.")
+                    print("   Revisa la longitud del brief.txt y de los estilos.")
+                    print("   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                all_images_successful = False
+                break # Detener en caso de error
+
+            time.sleep(1) # Pausa entre imágenes
+
+    except Exception as e:
+        print(f"❌ Error fatal conectando o generando con Runware: {e}")
+        all_images_successful = False
+    finally:
+        if runware:
+            await runware.disconnect()
+            print("\n🔌 Desconectado de Runware API (imágenes).")
+
+    return all_images_successful
+
+
+def _generate_visuals_gemini(
+    visual_prompts_list: list,
+    audio_scenes_list: list,
+    scene_contexts_list: list,
+    project_path: str,
+    client: OpenAI,
+    style_block: str,
+    overwrite: bool,
+    image_model: str,
+    style_slug_for_pixelize: str
+):
+    """
+    Genera imágenes con Google Gemini usando:
+    - visual_prompts_list: prompts visuales dedicados por escena
+    - audio_scenes_list: texto de audio original (solo para logs)
+    - scene_contexts_list: brief de consistencia específico por escena
+    """
+    print(f"🎨 Generando imágenes con Google Gemini (Opción alta calidad)...")
+    print(f"   Modelo: {image_model}")
+    
+    all_images_successful = True
+    MAX_RETRIES = 5
+
+    total_scenes = len(visual_prompts_list)
+
+    for idx, visual_prompt in enumerate(visual_prompts_list):
+        clean_text = visual_prompt.strip()
         if not clean_text:
             continue
 
-        print(f"🖼️  Generando imagen para escena {i}: '{clean_text[:60]}...'")
-        image_path = os.path.join(project_path, "images", f"{i}.png")
+        audio_text = audio_scenes_list[idx] if idx < len(audio_scenes_list) else ""
+        scene_ctx = scene_contexts_list[idx] if scene_contexts_list and idx < len(scene_contexts_list) else ""
+
+        print(f"🖼️  Generando imagen para escena {idx+1}: '{audio_text[:60]}...'")
+        image_path = os.path.join(project_path, "images", f"{idx+1}.png")
         os.makedirs(os.path.dirname(image_path), exist_ok=True)
 
-        # Si ya existe y no queremos sobrescribir
         if os.path.exists(image_path) and not overwrite:
-            print(f"   ✓ Imagen {i}.png ya existe, saltando generación.")
+            print(f"   ✓ Imagen {idx+1}.png ya existe, saltando generación.")
             continue
 
         image_generated = False
 
         for attempt in range(MAX_RETRIES):
             try:
-                # Construir prompt con contexto narrativo completo
-                # Todas las imágenes reciben el mismo contexto de consistencia
-                final_prompt = consistency_context + "\n\n" + build_master_prompt(style_block, clean_text)
-                final_prompt += f"\n\nEscena {i} de {len(scenes)} en la narrativa."
-                print(f"   → Escena {i}/{len(scenes)} con contexto narrativo completo")
+                # Prompt final: contexto de consistencia + estilo + prompt visual
+                final_prompt = scene_ctx + "\n\n" + build_master_prompt(style_block, clean_text)
+                final_prompt += f"\n\nEscena {idx+1} de {total_scenes} en la narrativa."
+                print(f"   → Escena {idx+1}/{total_scenes} con contexto narrativo específico")
 
-                # Llamar a Gemini API con configuración para generación de imágenes
                 response = gemini_client.models.generate_content(
                     model=image_model,
                     contents=[final_prompt],
                     config=types.GenerateContentConfig(
                         response_modalities=["IMAGE"],
                         image_config=types.ImageConfig(
-                            aspect_ratio="9:16",  # Vertical para TikTok/Reels
+                            aspect_ratio="9:16",
                         ),
                     ),
                 )
 
-                # Gemini devuelve imágenes en response.parts
-                # Buscar la parte que contiene la imagen
                 image_saved = False
                 if hasattr(response, 'parts'):
                     for part in response.parts:
-                        # Verificar si el part tiene inline_data (imagen)
                         if hasattr(part, 'inline_data') and part.inline_data is not None:
-                            # Usar el método as_image() para obtener la imagen PIL
                             pil_image = part.as_image()
-                            # Guardar directamente (PIL detecta formato por extensión .png)
                             pil_image.save(image_path)
                             image_saved = True
                             break
@@ -802,19 +1315,16 @@ Contexto de la historia completa:
                 if not image_saved:
                     raise RuntimeError("Gemini no devolvió datos de imagen válidos en response.parts")
 
-                # Postproceso: Pixel Art (si el estilo lo indica)
-                if "pixel" in image_style.lower():
+                if "pixel" in style_slug_for_pixelize:
                     pixelize_image(image_path, small_edge=256)
                     print("   ↳ postproceso: pixelize aplicado (downscale + NEAREST)")
 
                 print(f"   ✔ Guardada: {image_path}")
                 image_generated = True
-                break  # éxito → sal del bucle de reintentos
+                break
 
             except Exception as e:
                 error_message = str(e)
-
-                # Manejo de errores específicos de Gemini
                 if "SAFETY" in error_message or "BLOCKED" in error_message:
                     print(f"⚠️ Prompt bloqueado por seguridad (intento {attempt + 1}). Reescribiendo...")
                     rewritten_prompt = rewrite_prompt_for_safety(clean_text, client)
@@ -822,15 +1332,8 @@ Contexto de la historia completa:
                         clean_text = rewritten_prompt
                         continue
                     else:
-                        print("❌ No se pudo reescribir el prompt. Abortando esta imagen.")
                         all_images_successful = False
                         break
-
-                elif "RECITATION" in error_message:
-                    print(f"⚠️ Contenido bloqueado por recitación (intento {attempt + 1}). Modificando prompt...")
-                    clean_text = f"Create an original interpretation of: {clean_text}"
-                    continue
-
                 elif attempt < MAX_RETRIES - 1:
                     wait_time = (attempt + 1) * 2
                     print(f"⚠️ Error temporal (intento {attempt + 1}/{MAX_RETRIES}): {error_message[:100]}")
@@ -843,22 +1346,157 @@ Contexto de la historia completa:
                     break
 
         if not image_generated:
-            print(f"🚫 Falló la generación de la imagen para la escena {i} después de {MAX_RETRIES} intentos.")
+            print(f"🚫 Falló la generación de la imagen para la escena {idx+1} después de {MAX_RETRIES} intentos.")
             all_images_successful = False
-            break  # detén el proceso si una imagen falla definitivamente
+            break
 
-        # Pequeña pausa entre imágenes para no saturar la API
         time.sleep(1)
 
-    if all_images_successful:
-        print("✅ Todas las imágenes han sido generadas con éxito con Google Gemini.")
-        print("   Las imágenes mantienen consistencia visual entre escenas.")
-        return True
+    return all_images_successful
+
+
+
+def generate_visuals_for_script(
+    script_text: str, # <-- Recibe el guion de audio completo
+    project_path: str,
+    client: OpenAI,
+    overwrite: bool = False,
+    image_model: str = "gemini-2.5-flash-image",
+    image_quality: str = "standard", # No usado, pero mantenido por compatibilidad
+    image_style: str = None,
+):
+    """
+    Función "Router" (MODIFICADA) que orquesta la nueva arquitectura.
+    PASO 1: Genera los prompts visuales dedicados.
+    PASO 2: Genera el brief de consistencia (corto/largo).
+    PASO 3: Llama al 'worker' (Gemini o Qwen) con los materiales correctos.
+    """
+    
+    # --- 1. DEFINIR TIPO DE MODELO ---
+    model_type = "gemini" # Por defecto
+    if image_model == "qwen-image":
+        model_type = "qwen"
+    
+    # --- 2. PREPARAR ESTILO (Coger de la biblioteca correcta) ---
+    if not image_style:
+        image_style = STYLE_NAMES[0]
+    
+    if model_type == "qwen":
+        print("   (Usando biblioteca de estilos Qwen/Ultra-Cortos)")
+        style_block = next((b for n, b in STYLE_PRESETS_QWEN if n == image_style), STYLE_PRESETS_QWEN[0][1])
     else:
-        print("\n🚫 Proceso detenido debido a un error en la generación de imágenes.")
+        print("   (Usando biblioteca de estilos Gemini/Largos)")
+        style_block = next((b for n, b in STYLE_PRESETS_GEMINI if n == image_style), STYLE_PRESETS_GEMINI[0][1])
+        
+    style_slug = image_style.lower()
+    print(f"   Estilo seleccionado: {image_style}")
+
+    # --- 3. PREPARAR ESCENAS (Audio) ---
+    # Extraemos el texto de audio de cada escena para pasarlo como log
+    audio_scenes_list = re.findall(r'\[imagen:\d+\.png\]\s*(.*?)(?=\n\s*\[|$)', script_text, re.DOTALL)
+    if not audio_scenes_list:
+        print("\n❌ ERROR CRÍTICO: No se encontraron descripciones de escenas en el guion.")
         return False
 
+    # --- 4. PREPARAR PROMPTS VISUALES (¡NUEVA ARQUITECTURA!) ---
+    # Llamamos a la nueva función que crea los prompts visuales
+    visual_prompts_list = generate_visual_prompts_for_script(script_text, client)
+    if not visual_prompts_list or len(visual_prompts_list) != len(audio_scenes_list):
+        print("\n❌ ERROR CRÍTICO: No se pudieron generar los prompts visuales o el número no coincide.")
+        print(f"   (Escenas de audio: {len(audio_scenes_list)}, Prompts visuales: {len(visual_prompts_list)})")
+        return False
+        
+    # --- NUEVO: detectar escenas con protagonista según la etiqueta [PROTAGONISTA] ---
+    character_flags = []
+    cleaned_visual_prompts = []
 
+    for p in visual_prompts_list:
+        has_protagonist = "[PROTAGONISTA]" in p
+        character_flags.append(has_protagonist)
+
+        # Reemplazamos el marcador por algo neutro en el texto final
+        cleaned = p.replace("[PROTAGONISTA]", "la protagonista")
+        cleaned_visual_prompts.append(cleaned)
+
+    visual_prompts_list = cleaned_visual_prompts
+    print(f"   🧩 Escenas con protagonista detectadas: {sum(character_flags)} de {len(character_flags)}")
+        
+
+    # --- 5. PREPARAR BRIEF DE CONSISTENCIA (Largo o Corto) ---
+    visual_brief_raw = extract_visual_consistency_brief(script_text, client, model_type=model_type)
+    visual_brief = ensure_brief_dict(visual_brief_raw)
+
+    # Guardar brief en texto legible para debug
+    try:
+        brief_file_path = os.path.join(project_path, "brief.txt")
+        with open(brief_file_path, "w", encoding="utf-8") as f:
+            f.write("PERSONAJE:\n" + (visual_brief["character"] or "(sin definir)") + "\n\n")
+            f.write("ESCENARIO/UBICACIÓN:\n" + (visual_brief["environment"] or "(sin definir)") + "\n\n")
+            f.write("ILUMINACIÓN/ATMÓSFERA:\n" + (visual_brief["lighting"] or "(sin definir)") + "\n\n")
+            f.write("OBJETOS CLAVE:\n" + (visual_brief["objects"] or "(sin definir)") + "\n")
+        print(f"   💾 Brief visual ({model_type}) guardado en: {brief_file_path}")
+    except Exception as e:
+        print(f"   ⚠️  Advertencia: No se pudo guardar el brief.txt: {e}")
+ 
+    # --- 5.bis. Construir CONTEXTO POR ESCENA ---
+    scene_contexts = []
+    total_scenes = len(visual_prompts_list)
+
+    for idx, audio_scene in enumerate(audio_scenes_list):
+        flags = classify_scene_for_brief(audio_scene)
+
+        # --- NUEVO: el personaje se controla SOLO por la etiqueta [PROTAGONISTA] ---
+        if idx < len(character_flags) and character_flags[idx]:
+            flags["include_character"] = True
+        else:
+            flags["include_character"] = False
+
+        ctx = build_consistency_context_for_scene(
+            visual_brief,
+            include_character=flags["include_character"],
+            include_environment=flags["include_environment"],
+            include_objects=flags["include_objects"],
+            total_scenes=total_scenes,
+        )
+        scene_contexts.append(ctx)
+
+    print(f"   📖 Contextos de consistencia preparados por escena (total: {len(scene_contexts)})")
+
+        
+    # --- 6. EL ROUTER (Llamar al 'worker' correcto) ---
+    if model_type == "qwen":
+        if not runware_available:
+            print("\n❌ Error: El modelo 'qwen-image' requiere Runware, pero no está configurado.")
+            return False
+
+        print(f"   📖 Brief de consistencia (qwen/corto) aplicado con lógica por escena")
+
+        return asyncio.run(_generate_visuals_runware_async(
+            visual_prompts_list=visual_prompts_list,
+            audio_scenes_list=audio_scenes_list,
+            scene_contexts_list=scene_contexts,
+            project_path=project_path,
+            style_block=style_block,
+            overwrite=overwrite,
+            style_slug_for_pixelize=style_slug
+        ))
+        
+    else:
+        print(f"   📖 Brief de consistencia (gemini/largo) aplicado con lógica por escena")
+
+        return _generate_visuals_gemini(
+            visual_prompts_list=visual_prompts_list,
+            audio_scenes_list=audio_scenes_list,
+            scene_contexts_list=scene_contexts,
+            project_path=project_path,
+            client=client,
+            style_block=style_block,
+            overwrite=overwrite,
+            image_model=image_model,
+            style_slug_for_pixelize=style_slug
+        )
+
+        
 # --- 2.5. ANIMACIÓN DE IMÁGENES CON RUNWARE ---
 async def _animate_single_image_runware(runware_instance, image_path: str, video_path: str, image_number: str):
     """
@@ -1207,6 +1845,11 @@ RESTRICCIONES TEMÁTICAS (OBLIGATORIAS):
 - La historia debe ocurrir en un LUGAR ESTÁTICO o muy acotado:
   casas, edificios, hospitales, cementerios, bosques, pueblos abandonados, fábricas, túneles, minas, barcos, ruinas, etc.
 
+PROTAGONISTA ÚNICO (OBLIGATORIO):
+- La idea debe girar alrededor de UN SOLO protagonista claro.
+- Puede haber otros personajes, pero SIEMPRE hay una figura central que lleva el peso de la historia.
+- Evita ideas basadas en grupos donde nadie destaque como protagonista.
+
 RESTRICCIONES DE ESTILO (OBLIGATORIAS):
 - NO empieces el texto con "Medianoche", "A medianoche", "Eran las doce", "A las doce" ni variaciones.
 - Varía los comienzos: puedes empezar por una imagen, un sonido, una sensación, un objeto, una regla extraña, etc.
@@ -1220,7 +1863,6 @@ IMPORTANTE:
 - No incluyas títulos ni encabezados, solo el texto de la idea.
 - El tono debe ser narrativo y sugerente, como tus ejemplos manuales, pero dejando margen para que otro modelo desarrolle el guion.
 """.strip()
-
 
     user_prompt = f"""
 A continuación tienes un índice curado con los proyectos más exitosos de la cuenta
@@ -1313,11 +1955,17 @@ def main():
     parser.add_argument("--project-name", required=False, help="El nombre de la carpeta del proyecto (p.ej. 192_RISA).")
     parser.add_argument("--overwrite-images", action="store_true", help="Regenera todas las imágenes aunque ya existan.")
     parser.add_argument("--force-video", action="store_true", help="Regenera el video aunque ya exista.")
-    parser.add_argument("--image-model", default=None,
-                        choices=["gemini-2.5-flash-image", "gemini-2.0-flash-exp"],
-                        help="Modelo de generación de imágenes Google Gemini. Default: gemini-2.5-flash-image (mejor consistencia)")
+    
+    # --- CAMBIO IMPORTANTE AQUÍ ---
+    parser.add_argument("--image-model", default="gemini-2.5-flash-image",
+                        choices=["gemini-2.5-flash-image", "qwen-image"],
+                        help=("Modelo de generación de imágenes. "
+                              "Default: 'gemini-2.5-flash-image' (alta calidad, coste ~$0.04/img). "
+                              "Alternativa: 'qwen-image' (ahorro, coste ~$0.007/img, usa Runware)."))
+    # --- FIN DEL CAMBIO ---
+    
     parser.add_argument("--image-quality", default=None,
-                        help="Mantenido por compatibilidad, no usado con Gemini.")
+                        help="Mantenido por compatibilidad, no usado.")
     parser.add_argument("--animate-images", action="store_true",
                         help=("Anima las imágenes generadas usando Seedance 1.0 Pro Fast en Runware "
                               "(864x480, 6s, ~$0.0315 por video - 65%% más barato que Replicate)."))
@@ -1327,7 +1975,6 @@ def main():
     chosen_style = None
 
     # --- MODO AUTOMÁTICO ---
-    # Si no se proporcionó idea ni project-name, activar modo automático
     if args.idea is None and args.project_name is None:
         print("\n🚀 Modo automático detectado (no se proporcionaron --idea ni --project-name)")
 
@@ -1340,8 +1987,7 @@ def main():
         chosen_style = interactive_style_selection()
         print(f"✅ Estilo seleccionado para este proyecto: {chosen_style}\n")
 
-        # 3. Generar idea automáticamente analizando proyectos virales y adaptándola al estilo
-        #    (asegúrate de que generate_automatic_idea acepte style_name=None por defecto)
+        # 3. Generar idea automáticamente
         auto_idea = generate_automatic_idea(client, style_name=chosen_style)
         if not auto_idea:
             print("❌ Error al generar idea automática. Abortando.")
@@ -1364,17 +2010,17 @@ def main():
         print("Continuando con el flujo normal de generación...")
         print("="*70 + "\n")
 
-    # Verificar que ahora tenemos idea y project-name (manual o automático)
+    # Verificar que ahora tenemos idea y project-name
     if not args.idea or not args.project_name:
         print("❌ Error: Se requiere --idea y --project-name (o ninguno para modo automático)")
         parser.print_help()
         return
 
-    # Si no se especificaron modelo y calidad, usar valores por defecto
-    if args.image_model is None or args.image_quality is None:
-        args.image_model = "gemini-2.5-flash-image"
+    # Si no se especificó image_quality (no se usa)
+    if args.image_quality is None:
         args.image_quality = "standard"
-        print(f"📸 Usando modelo de imagen por defecto: Google {args.image_model}")
+        
+    print(f"📸 Usando modelo de imagen seleccionado: {args.image_model}")
 
     project_path = args.project_name
     images_path = os.path.join(project_path, "images")
@@ -1384,13 +2030,12 @@ def main():
         os.makedirs(images_path)
         print(f"📁 Proyecto creado en: ./{project_path}/")
 
-        # Copiamos los archivos base si existen en la carpeta principal del script
+        # Copiamos los archivos base
         print("📥 Copiando archivos base (musica.mp3, cierre.mp4)...")
         script_dir = os.path.dirname(os.path.abspath(__file__))
         for file_name in ["musica.mp3", "cierre.mp4"]:
             source_file = os.path.join(script_dir, file_name)
             if os.path.exists(source_file):
-                # Copiar a la carpeta images/
                 dest_file = os.path.join(images_path, file_name)
                 shutil.copy(source_file, dest_file)
                 print(f"   ✓ {file_name} copiado a images/")
@@ -1407,7 +2052,6 @@ def main():
             return
 
         with open(script_file, "w", encoding="utf-8") as f:
-            # Reemplazamos .mp4 por .png desde el momento de la creación
             script_content = content_generated["script"].replace(".mp4", ".png")
             f.write(script_content)
             
@@ -1419,34 +2063,31 @@ def main():
     else:
         print("📝 Archivos de texto ya existen, saltando generación de contenido.")
         with open(script_file, "r", encoding="utf-8") as f:
-            # Nos aseguramos de que el guion que leemos usa .png para la lógica de re-generación
             script_content = f.read().replace(".mp4", ".png")
             content = {"script": script_content}
 
     # Menú interactivo de estilo visual
     if chosen_style is None:
-        # Modo manual: no se había escogido estilo aún
         chosen_style = interactive_style_selection()
         print(f"✅ Estilo seleccionado: {chosen_style}\n")
     else:
-        # Modo automático: ya se escogió antes para la idea
         print(f"✅ Usando estilo visual ya seleccionado: {chosen_style}\n")
 
-    # Llamada a la función de imágenes pasando el objeto 'client' para las reescrituras
+    # Llamada a la función de imágenes (que ahora es un router)
     success = generate_visuals_for_script(
         content["script"],
         project_path,
         client,
         overwrite=args.overwrite_images,
-        image_model=args.image_model,
+        image_model=args.image_model,     # <-- Pasa el modelo elegido
         image_quality=args.image_quality,
-        image_style=chosen_style,   # ← sigue igual, pero ahora puede venir del modo auto
+        image_style=chosen_style,
     )
 
     if not success:
         return
 
-    # Si se especificó --animate-images, animar las imágenes con Runware
+    # Si se especificó --animate-images... (el resto de la función es igual)
     if args.animate_images:
         animate_success = animate_images_with_runware(
             project_path,
@@ -1455,20 +2096,15 @@ def main():
         if not animate_success:
             print("\n⚠️  Advertencia: Hubo problemas al animar las imágenes.")
             print("   Puedes intentar nuevamente con --animate-images --overwrite-images")
-            # No abortamos, continuamos con el proceso normal
         else:
-            # Actualizar texto.txt para usar .mp4 en lugar de .png
+            # Actualizar texto.txt para usar .mp4
             script_file = os.path.join(project_path, "texto.txt")
             if os.path.exists(script_file):
                 with open(script_file, "r", encoding="utf-8") as f:
                     script_content = f.read()
-
-                # Reemplazar .png por .mp4
                 updated_content = script_content.replace(".png]", ".mp4]")
-
                 with open(script_file, "w", encoding="utf-8") as f:
                     f.write(updated_content)
-
                 print("\n✅ Archivo texto.txt actualizado: .png → .mp4")
     else:
         print("\n💡 Tip: Puedes animar las imágenes agregando --animate-images a tu comando")
@@ -1488,7 +2124,6 @@ def main():
 
     print("\n🎬 Todo listo. Lanzando el renderizado final con run.ps1...")
 
-    # Obtener la ruta absoluta de run.ps1 (está en el mismo directorio que este script)
     script_dir = os.path.dirname(os.path.abspath(__file__))
     run_ps1_path = os.path.join(script_dir, "run.ps1")
 
@@ -1501,7 +2136,6 @@ def main():
     ]
 
     try:
-        # Ejecutamos el comando desde dentro de la carpeta del proyecto
         subprocess.run(command, cwd=project_path, check=True, shell=True)
         print(f"\n✅ ¡Proceso completado! El vídeo final está en la carpeta '{project_path}/Out'.")
     except subprocess.CalledProcessError as e:
