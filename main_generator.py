@@ -64,20 +64,41 @@ def main():
     parser.add_argument("--output", type=Path, default=Path("./output"), help="Directorio de salida")
     parser.add_argument("--dry-run", action="store_true", help="Simular sin generar imágenes")
     parser.add_argument("--overwrite", action="store_true", help="Sobrescribir imágenes existentes")
+    parser.add_argument("--image-model", choices=["gemini", "qwen"], default="gemini",
+                        help="Modelo para generar imágenes: gemini (alta calidad) o qwen (económico)")
+    parser.add_argument("--animate", action="store_true",
+                        help="Animar imágenes con Runware después de generarlas (solo con --image-model qwen)")
 
     args = parser.parse_args()
 
-    # Validar API keys
+    # Validar API keys según modelo seleccionado
+    required_keys = ["OPENAI_API_KEY"]
+    if args.image_model == "gemini":
+        required_keys.append("GEMINI_API_KEY")
+    elif args.image_model == "qwen":
+        required_keys.append("RUNWARE_API_KEY")
+
     try:
-        validate_api_keys(["OPENAI_API_KEY", "GEMINI_API_KEY"])
+        validate_api_keys(required_keys)
     except ValueError as e:
         print(f"❌ {e}")
         sys.exit(1)
 
     # Inicializar servicios
-    print("🚀 Inicializando servicios...")
+    print(f"🚀 Inicializando servicios (Modelo de imágenes: {args.image_model})...")
     openai_service = OpenAIService()
-    gemini_service = GeminiService()
+
+    # Inicializar servicio de imágenes según modelo seleccionado
+    if args.image_model == "gemini":
+        gemini_service = GeminiService()
+        image_service = gemini_service
+    else:  # qwen
+        from src.services.runware_service import RunwareService, is_runware_available
+        if not is_runware_available():
+            print("❌ Runware no está disponible. Instala con: pip install runware")
+            sys.exit(1)
+        runware_service = RunwareService()
+        image_service = runware_service
 
     # 1. Obtener o generar idea
     if args.auto_idea:
@@ -189,8 +210,9 @@ def main():
         visual_prompts = cleaned_visual_prompts
         print(f"   🧩 Escenas con protagonista detectadas: {sum(character_flags)} de {len(character_flags)}")
 
-        # Extraer brief de consistencia
-        visual_brief_raw = extract_visual_consistency_brief(script_text, openai_service, model_type="gemini")
+        # Extraer brief de consistencia (adaptar al modelo)
+        model_type = "qwen" if args.image_model == "qwen" else "gemini"
+        visual_brief_raw = extract_visual_consistency_brief(script_text, openai_service, model_type=model_type)
         visual_brief = ensure_brief_dict(visual_brief_raw)
 
         # Guardar brief
@@ -229,21 +251,35 @@ def main():
 
         print(f"   📖 Contextos de consistencia preparados por escena (total: {len(scene_contexts)})")
 
-        # Generar imágenes con Gemini
+        # Generar imágenes con el modelo seleccionado
         images_dir = project_dir / "images"
         images_dir.mkdir(exist_ok=True)
 
-        success = gemini_service.generate_visuals_for_script(
-            visual_prompts_list=visual_prompts,
-            audio_scenes_list=audio_scenes_list,
-            scene_contexts_list=scene_contexts,
-            project_path=str(project_dir),
-            client_openai=openai_service,
-            style_block=style_block,
-            overwrite=args.overwrite if hasattr(args, 'overwrite') else False,
-            image_model="gemini-2.5-flash-image",
-            style_slug_for_pixelize=style_name.lower()
-        )
+        if args.image_model == "gemini":
+            # Generar con Gemini (alta calidad)
+            success = gemini_service.generate_visuals_for_script(
+                visual_prompts_list=visual_prompts,
+                audio_scenes_list=audio_scenes_list,
+                scene_contexts_list=scene_contexts,
+                project_path=str(project_dir),
+                client_openai=openai_service,
+                style_block=style_block,
+                overwrite=args.overwrite,
+                image_model="gemini-2.5-flash-image",
+                style_slug_for_pixelize=style_name.lower()
+            )
+        else:  # qwen
+            # Generar con Runware/Qwen (económico)
+            import asyncio
+            success = asyncio.run(runware_service.generate_visuals_for_script(
+                visual_prompts_list=visual_prompts,
+                audio_scenes_list=audio_scenes_list,
+                scene_contexts_list=scene_contexts,
+                project_path=str(project_dir),
+                style_block=style_block,
+                overwrite=args.overwrite,
+                style_slug_for_pixelize=style_name.lower()
+            ))
 
         if success:
             print(f"\n✅ ¡Proyecto creado exitosamente en {project_dir}!")

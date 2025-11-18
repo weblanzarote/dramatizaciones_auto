@@ -70,6 +70,12 @@ python main_generator.py \
     --output ./MisProyectos \
     --overwrite  # Sobrescribe imágenes existentes
 
+# 5. Generar con Runware/Qwen (económico) y animar
+python main_generator.py \
+    --auto-idea \
+    --image-model qwen \  # Usa Qwen-Image (más barato)
+    --animate             # Anima las imágenes generadas
+
 # Resultado:
 # ./MisProyectos/Nombre_Del_Proyecto/
 #   ├── script.txt           # Guion con etiquetas [SPEAKER] e [imagen:X.png]
@@ -151,6 +157,17 @@ python main_renderer.py script.txt --dry-run
 # Video
 --resolution 1920x1080      # Resolución (WxH)
 --fps 30                    # Frames por segundo
+```
+
+### Opciones de main_generator.py
+
+```bash
+# Selección de modelo de imágenes
+--image-model {gemini,qwen}  # gemini=alta calidad, qwen=económico (default: gemini)
+--animate                    # Anima imágenes con Runware (solo con qwen)
+--overwrite                  # Sobrescribe imágenes existentes
+--output ./dir               # Directorio de salida
+--dry-run                    # Simular sin generar imágenes
 ```
 
 ## 📦 Módulos
