@@ -24,6 +24,9 @@ from src.services.gemini_service import GeminiService
 from src.content.ideation import generate_project_name_from_idea, generate_automatic_idea
 from src.content.scripting import generate_creative_content, generate_visual_prompts_for_script
 
+# Importar utilidades
+from src.utils.indexer import index_projects
+
 
 def interactive_style_selection():
     """Menú interactivo para seleccionar estilo visual."""
@@ -100,22 +103,40 @@ def main():
         runware_service = RunwareService()
         image_service = runware_service
 
-    # 1. Obtener o generar idea
+    # 1. Si se usa --auto-idea, ejecutar indexador y seleccionar estilo primero
     if args.auto_idea:
-        print("\n🎲 Generando idea automática...")
-        idea = generate_automatic_idea(openai_service)
-        print(f"💡 Idea generada: {idea}\n")
+        print("\n📊 Actualizando índice de proyectos anteriores...")
+        index_projects()
+
+        # Seleccionar estilo ANTES de generar la idea (para adaptarla)
+        print("\n" + "="*70)
+        print("NOTA: El estilo visual seleccionado influirá en la idea generada")
+        print("="*70)
+        style_name = interactive_style_selection()
+        style_block = dict(STYLE_PRESETS_GEMINI)[style_name]
+
+        print("\n🎲 Generando idea automática basada en patrones virales...")
+        idea = generate_automatic_idea(openai_service, style_name=style_name)
+
+        if not idea:
+            print("❌ Error al generar idea automática.")
+            sys.exit(1)
+
+        print(f"\n💡 Idea generada: {idea}\n")
     elif args.idea:
         idea = args.idea
+        # Seleccionar estilo después de tener la idea
+        style_name = interactive_style_selection()
+        style_block = dict(STYLE_PRESETS_GEMINI)[style_name]
     else:
         idea = input("💡 Escribe tu idea para la historia: ").strip()
         if not idea:
             print("❌ Debes proporcionar una idea.")
             sys.exit(1)
 
-    # 2. Seleccionar estilo
-    style_name = interactive_style_selection()
-    style_block = dict(STYLE_PRESETS_GEMINI)[style_name]
+        # Seleccionar estilo después de tener la idea
+        style_name = interactive_style_selection()
+        style_block = dict(STYLE_PRESETS_GEMINI)[style_name]
 
     # 3. Generar contenido creativo (guion + social post)
     print("\n🧠 Generando guion y contenido para redes sociales...")

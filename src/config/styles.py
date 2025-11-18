@@ -435,3 +435,82 @@ def _build_runware_prompt(style_block: str, scene_text: str, consistency_context
         final_prompt = final_prompt[:max_length].rstrip()
 
     return final_prompt
+
+
+# --- NOMBRES DE ESTILOS (Común a ambas listas) ---
+STYLE_NAMES = [n for n, _ in STYLE_PRESETS_GEMINI]
+
+
+# --- PISTAS PARA ADAPTAR IDEAS AL ESTILO VISUAL ---
+STYLE_IDEA_HINTS = {
+    "Novela Gráfica Oscura (horror gótico cinematográfico)": (
+        "La historia debe sentirse como un cómic adulto de terror gótico: escenas muy visuales, "
+        "con arquitectura dominante (calles estrechas, edificios antiguos, interiores decadentes) "
+        "y momentos congelados en poses potentes. Evita tramas excesivamente intimistas sin "
+        "entorno; el lugar debe ser casi un personaje más."
+    ),
+
+    "Fotorrealismo Cinematográfico (Thriller Moderno)": (
+        "La historia debe situarse en un contexto contemporáneo reconocible: pisos actuales, "
+        "hospitales, oficinas, parkings, bloques de viviendas, portales, centros comerciales. "
+        "El terror debe apoyarse en detalles cotidianos hiperrealistas (luces de emergencia, "
+        "cámaras de seguridad, puertas automáticas, pasillos interminables) y en la sensación "
+        "de estar dentro de una película de thriller moderno."
+    ),
+
+    "Animación Neo-Noir (Estilo 'Arcane')": (
+        "La historia debe encajar en un mundo híbrido entre lo industrial y lo fantástico: "
+        "barrios bajos con talleres, tuberías, fábricas, callejones húmedos, pasarelas elevadas, "
+        "y quizá algún elemento de tecnología extraña o energía misteriosa. Funciona muy bien "
+        "si hay contraste entre zonas ricas y pobres, o entre lo mágico y lo mecánico."
+    ),
+
+    "Óleo Digital Cinematográfico (Terror Clásico)": (
+        "La historia debe recordar al terror gótico clásico: mansiones antiguas, palacios, "
+        "conventos, teatros viejos, cementerios monumentales o salones abarrotados de cuadros. "
+        "El misterio tiene que apoyarse en grandes espacios cargados de historia, tradiciones "
+        "familiares oscuras, maldiciones antiguas o secretos de linaje."
+    ),
+
+    "Grabado Anatómico Victoriano (Códice Maldito)": (
+        "La historia debe encajar con un tono de códice antiguo o manual de anatomía victoriano: "
+        "laboratorios, gabinetes de curiosidades, hospitales viejos, sanatorios, monasterios, "
+        "archivos y bibliotecas polvorientas llenas de láminas, frascos y objetos clasificados. "
+        "Idealmente hay documentos, esquemas, disecciones, diagramas o dibujos que escondan el horror."
+    ),
+
+    "Fotografía Antigua Inquietante (Daguerrotipo)": (
+        "La historia debe ambientarse en una época compatible con fotografías antiguas "
+        "(finales del siglo XIX o principios del XX), o bien en el presente pero girando "
+        "en torno al hallazgo de viejas fotografías, retratos de familia o placas dañadas. "
+        "Evita elementos claramente modernos en la escena principal (móviles, pantallas, redes sociales)."
+    ),
+
+    "Acuarela Gótica (Bruma y Tinta)": (
+        "La historia debe apoyarse en la niebla, la lluvia, la bruma o la oscuridad suave: "
+        "bosques, acantilados, cementerios, pueblos envueltos en niebla, estaciones abandonadas, "
+        "ruinas medio ocultas por la lluvia. El miedo debe surgir de siluetas, sombras difusas y "
+        "figuras que apenas se distinguen entre las manchas de luz y tinta."
+    ),
+
+    "Stop-Motion Macabro (Cuento Táctil)": (
+        "La historia debe poder contarse como un cuento macabro con objetos físicos: muñecos, "
+        "juguetes, marionetas, casas de muñecas, cementerios diminutos, mercados extraños, "
+        "habitaciones llenas de cachivaches. Funciona especialmente bien si hay rituales, "
+        "tradiciones familiares raras o maldiciones ligadas a objetos hechos a mano."
+    ),
+
+    "Vitral Gótico (Luz Oscura)": (
+        "La historia debe funcionar bien como una escena casi iconográfica: composiciones claras, "
+        "centradas y simbólicas. Lugares como iglesias, catedrales, ermitas, altares, órdenes "
+        "secretas o cultos religiosos encajan muy bien. El misterio puede girar en torno a santos, "
+        "milagros, herejías, símbolos repetidos en vidrieras o profecías representadas en cristal."
+    ),
+
+    "Alto Contraste Noir (Siluetas y Sombras)": (
+        "La historia debe poder leerse en blanco y negro extremos: callejones mojados, azoteas, "
+        "despachos con persianas, farolas solitarias, portales, estaciones nocturnas. Ideal para "
+        "tramas urbanas de investigación, secretos, chantajes, encuentros clandestinos o persecuciones "
+        "en penumbra donde las siluetas y las sombras digan más que los detalles."
+    ),
+}
