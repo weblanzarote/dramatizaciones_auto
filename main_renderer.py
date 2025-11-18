@@ -86,6 +86,25 @@ def main():
     parser.add_argument("--resolution", default="1920x1080", help="Resolución WxH")
     parser.add_argument("--fps", type=int, default=30, help="FPS del video")
     parser.add_argument("--bg-color", default="#000000", help="Color de fondo")
+    parser.add_argument("--fit", choices=["contain", "cover"], default="contain",
+                        help="Ajuste de imagen: contain (letterbox) o cover (recorta)")
+    parser.add_argument("--pad-ms", type=int, default=200, help="Padding visual al final (ms)")
+    parser.add_argument("--kenburns", choices=["none", "in", "out"], default="none",
+                        help="Efecto Ken Burns: none, in (zoom in), out (zoom out)")
+    parser.add_argument("--kb-zoom", type=float, default=0.10, help="Zoom total relativo (0.10 = 10%)")
+    parser.add_argument("--kb-pan", choices=["center", "tl2br", "tr2bl", "bl2tr", "br2tl", "random"],
+                        default="center", help="Dirección del paneo")
+    parser.add_argument("--kb-seed", type=int, default=0, help="Semilla para 'random' (0 = derivada)")
+    parser.add_argument("--kb-sticky", action="store_true",
+                        help="No reinicia Ken Burns si la imagen no cambia")
+    parser.add_argument("--media-keep-audio", action="store_true",
+                        help="Mantiene audio original de videos")
+    parser.add_argument("--media-audio-vol", type=float, default=0.20,
+                        help="Volumen del audio original de videos (0.0-1.0)")
+    parser.add_argument("--music-audio", action="store_true",
+                        help="Activa música de fondo si existe images/musica.mp3")
+    parser.add_argument("--music-audio-vol", type=float, default=0.2,
+                        help="Volumen de la música de fondo (0.0-1.0)")
 
     args = parser.parse_args()
 
@@ -187,16 +206,91 @@ def main():
         return
 
     print("\n🎬 Generando video...")
-    print("⚠️  NOTA: La lógica completa de composición de video está en")
-    print("   el archivo original generate_audiovideo_from_txt_drama.py (líneas 654-1104).")
-    print("   Por simplicidad, esta versión refactorizada requiere que completes")
-    print("   esa funcionalidad en src/video/composition.py")
 
-    # TODO: Implementar composición de video
-    # Ver generate_audiovideo_from_txt_drama.py líneas 654-1104 para la lógica completa
-    # Incluye: creación de clips, aplicar Ken Burns, concatenar, añadir música, etc.
+    from src.video.renderer import render_video_from_frames
+    from src.media.image_proc import parse_color
+    from src.video.composition import parse_resolution
 
-    print(f"\n✅ Proceso completado. Audios en: {outdir}")
+    W, H = parse_resolution(args.resolution)
+    bg_color = parse_color(args.bg_color)
+    images_dir = args.images_dir.resolve()
+
+    # Preparar frames: reunir audio + imagen + duración
+    frames = []
+    audio_refs = []
+    subs_entries = []
+    current_time = 0.0
+    ai = 0  # índice en audio_paths
+
+    def resolve_img_file(t_image):
+        if not t_image:
+            return None
+        cand = [images_dir / t_image]
+        if not cand[0].exists() and "." in t_image:
+            from pathlib import Path
+            stem, ext = Path(t_image).stem, Path(t_image).suffix
+            alts = [images_dir / (stem + alt) for alt in [ext, ".png", ".jpg", ".jpeg", ".webp", ".mp4", ".mov", ".m4v", ".webm"]]
+            for c in alts:
+                if c.exists():
+                    cand = [c]
+                    break
+        for c in cand:
+            if c.exists():
+                return c
+        return None
+
+    for i, t in enumerate(turns, start=1):
+        # Reunir partes de audio del bloque i
+        parts_for_block = []
+        while ai < len(audio_paths):
+            p = audio_paths[ai]
+            if p.name.startswith(f"{i:03d}_"):
+                parts_for_block.append((p, audio_texts[ai], audio_speakers[ai]))
+                ai += 1
+            else:
+                break
+
+        if not parts_for_block:
+            continue
+
+        img_file = resolve_img_file(t.image)
+        img_key = str(img_file.resolve()) if img_file else f"COLOR:{bg_color}"
+
+        # Crear frames con audio y tiempos
+        for part_path, part_text, part_speaker in parts_for_block:
+            audio_clip = AudioFileClip(str(part_path))
+            audio_refs.append(audio_clip)
+            dur = audio_clip.duration + (args.pad_ms / 1000.0)
+
+            frames.append({
+                "img_key": img_key,
+                "img_file": img_file,
+                "dur": dur,
+                "audio": audio_clip,
+                "text": part_text.strip(),
+                "speaker": part_speaker
+            })
+
+            current_time += dur
+
+    # Renderizar video con frames preparados
+    success = render_video_from_frames(
+        frames=frames,
+        turns=turns,
+        args=args,
+        images_dir=images_dir,
+        audio_refs=audio_refs,
+        subs_entries=subs_entries,
+        ass_events=[]
+    )
+
+    if success:
+        print(f"\n✅ Proceso completado exitosamente!")
+        print(f"📁 Audios en: {outdir}")
+        print(f"🎬 Video en: {args.video_out}")
+    else:
+        print(f"\n⚠️ Hubo errores en el renderizado del video.")
+        print(f"📁 Audios generados en: {outdir}")
 
 
 if __name__ == "__main__":

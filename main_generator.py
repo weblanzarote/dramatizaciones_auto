@@ -63,20 +63,42 @@ def main():
     parser.add_argument("--auto-idea", action="store_true", help="Generar idea automáticamente")
     parser.add_argument("--output", type=Path, default=Path("./output"), help="Directorio de salida")
     parser.add_argument("--dry-run", action="store_true", help="Simular sin generar imágenes")
+    parser.add_argument("--overwrite", action="store_true", help="Sobrescribir imágenes existentes")
+    parser.add_argument("--image-model", choices=["gemini", "qwen"], default="gemini",
+                        help="Modelo para generar imágenes: gemini (alta calidad) o qwen (económico)")
+    parser.add_argument("--animate", action="store_true",
+                        help="Animar imágenes con Runware después de generarlas (solo con --image-model qwen)")
 
     args = parser.parse_args()
 
-    # Validar API keys
+    # Validar API keys según modelo seleccionado
+    required_keys = ["OPENAI_API_KEY"]
+    if args.image_model == "gemini":
+        required_keys.append("GEMINI_API_KEY")
+    elif args.image_model == "qwen":
+        required_keys.append("RUNWARE_API_KEY")
+
     try:
-        validate_api_keys(["OPENAI_API_KEY", "GEMINI_API_KEY"])
+        validate_api_keys(required_keys)
     except ValueError as e:
         print(f"❌ {e}")
         sys.exit(1)
 
     # Inicializar servicios
-    print("🚀 Inicializando servicios...")
+    print(f"🚀 Inicializando servicios (Modelo de imágenes: {args.image_model})...")
     openai_service = OpenAIService()
-    gemini_service = GeminiService()
+
+    # Inicializar servicio de imágenes según modelo seleccionado
+    if args.image_model == "gemini":
+        gemini_service = GeminiService()
+        image_service = gemini_service
+    else:  # qwen
+        from src.services.runware_service import RunwareService, is_runware_available
+        if not is_runware_available():
+            print("❌ Runware no está disponible. Instala con: pip install runware")
+            sys.exit(1)
+        runware_service = RunwareService()
+        image_service = runware_service
 
     # 1. Obtener o generar idea
     if args.auto_idea:
@@ -152,20 +174,119 @@ def main():
     # 7. Generar imágenes (si no es dry-run)
     if args.dry_run:
         print("\n✅ DRY-RUN: No se generaron imágenes.")
+        print(f"✅ ¡Proyecto creado exitosamente en {project_dir}!")
     else:
-        print("\n🖼️  Generación de imágenes...")
-        print("⚠️  NOTA: La lógica completa de generación de imágenes con Gemini")
-        print("   está en el archivo original create_project.py (líneas 1245-1698).")
-        print("   Por simplicidad, esta versión refactorizada requiere que completes")
-        print("   esa funcionalidad en src/services/gemini_service.py")
+        # Importar módulos adicionales para generación
+        import re
+        from src.content.consistency import (
+            extract_visual_consistency_brief,
+            ensure_brief_dict,
+            classify_scene_for_brief,
+            build_consistency_context_for_scene
+        )
 
-        # TODO: Implementar generación de imágenes
-        # for i, prompt in enumerate(visual_prompts, 1):
-        #     full_prompt = build_master_prompt(style_block, prompt)
-        #     # Llamar a gemini_service.generate_image(...)
-        #     pass
+        print("\n🖼️  Generación de imágenes con Gemini...")
 
-    print(f"\n✅ ¡Proyecto creado exitosamente en {project_dir}!")
+        # Preparar escenas de audio
+        audio_scenes_list = re.findall(r'\[imagen:\d+\.png\]\s*(.*?)(?=\n\s*\[|$)', script_text, re.DOTALL)
+        if not audio_scenes_list:
+            print("❌ ERROR: No se encontraron descripciones de escenas en el guion.")
+            sys.exit(1)
+
+        if len(audio_scenes_list) != len(visual_prompts):
+            print(f"⚠️ Advertencia: Número de escenas de audio ({len(audio_scenes_list)}) "
+                  f"diferente a prompts visuales ({len(visual_prompts)})")
+
+        # Detectar protagonista con marcador [PROTAGONISTA]
+        character_flags = []
+        cleaned_visual_prompts = []
+
+        for p in visual_prompts:
+            has_protagonist = "[PROTAGONISTA]" in p
+            character_flags.append(has_protagonist)
+            cleaned = p.replace("[PROTAGONISTA]", "la protagonista")
+            cleaned_visual_prompts.append(cleaned)
+
+        visual_prompts = cleaned_visual_prompts
+        print(f"   🧩 Escenas con protagonista detectadas: {sum(character_flags)} de {len(character_flags)}")
+
+        # Extraer brief de consistencia (adaptar al modelo)
+        model_type = "qwen" if args.image_model == "qwen" else "gemini"
+        visual_brief_raw = extract_visual_consistency_brief(script_text, openai_service, model_type=model_type)
+        visual_brief = ensure_brief_dict(visual_brief_raw)
+
+        # Guardar brief
+        try:
+            brief_file = project_dir / "brief.txt"
+            with open(brief_file, "w", encoding="utf-8") as f:
+                f.write("PERSONAJE:\n" + (visual_brief["character"] or "(sin definir)") + "\n\n")
+                f.write("ESCENARIO/UBICACIÓN:\n" + (visual_brief["environment"] or "(sin definir)") + "\n\n")
+                f.write("ILUMINACIÓN/ATMÓSFERA:\n" + (visual_brief["lighting"] or "(sin definir)") + "\n\n")
+                f.write("OBJETOS CLAVE:\n" + (visual_brief["objects"] or "(sin definir)") + "\n")
+            print(f"   💾 Brief visual guardado en: {brief_file}")
+        except Exception as e:
+            print(f"   ⚠️ Advertencia: No se pudo guardar brief.txt: {e}")
+
+        # Construir contexto por escena
+        scene_contexts = []
+        total_scenes = len(visual_prompts)
+
+        for idx, audio_scene in enumerate(audio_scenes_list):
+            flags = classify_scene_for_brief(audio_scene)
+
+            # El personaje se controla por el marcador [PROTAGONISTA]
+            if idx < len(character_flags) and character_flags[idx]:
+                flags["include_character"] = True
+            else:
+                flags["include_character"] = False
+
+            ctx = build_consistency_context_for_scene(
+                visual_brief,
+                include_character=flags["include_character"],
+                include_environment=flags["include_environment"],
+                include_objects=flags["include_objects"],
+                total_scenes=total_scenes,
+            )
+            scene_contexts.append(ctx)
+
+        print(f"   📖 Contextos de consistencia preparados por escena (total: {len(scene_contexts)})")
+
+        # Generar imágenes con el modelo seleccionado
+        images_dir = project_dir / "images"
+        images_dir.mkdir(exist_ok=True)
+
+        if args.image_model == "gemini":
+            # Generar con Gemini (alta calidad)
+            success = gemini_service.generate_visuals_for_script(
+                visual_prompts_list=visual_prompts,
+                audio_scenes_list=audio_scenes_list,
+                scene_contexts_list=scene_contexts,
+                project_path=str(project_dir),
+                client_openai=openai_service,
+                style_block=style_block,
+                overwrite=args.overwrite,
+                image_model="gemini-2.5-flash-image",
+                style_slug_for_pixelize=style_name.lower()
+            )
+        else:  # qwen
+            # Generar con Runware/Qwen (económico)
+            import asyncio
+            success = asyncio.run(runware_service.generate_visuals_for_script(
+                visual_prompts_list=visual_prompts,
+                audio_scenes_list=audio_scenes_list,
+                scene_contexts_list=scene_contexts,
+                project_path=str(project_dir),
+                style_block=style_block,
+                overwrite=args.overwrite,
+                style_slug_for_pixelize=style_name.lower()
+            ))
+
+        if success:
+            print(f"\n✅ ¡Proyecto creado exitosamente en {project_dir}!")
+            print(f"📁 Imágenes generadas en: {images_dir}")
+        else:
+            print(f"\n⚠️ Proyecto creado pero hubo errores en la generación de imágenes.")
+            print(f"📁 Revisa el directorio: {project_dir}")
 
 
 if __name__ == "__main__":

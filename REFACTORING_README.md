@@ -50,35 +50,124 @@ proyecto_video_ia/
         └── subtitles.py     # Generación de .srt y .ass
 ```
 
-## 🚀 Uso
+## 🚀 Uso Completo
 
 ### Generar un proyecto (historias + imágenes)
 
 ```bash
-# Modo interactivo
+# 1. Modo interactivo básico
 python main_generator.py --idea "Un detective encuentra un espejo maldito"
 
-# Generar idea automáticamente
+# 2. Generar idea automáticamente
 python main_generator.py --auto-idea
 
-# Dry-run (solo genera guiones, no imágenes)
+# 3. Dry-run (solo genera guiones, no imágenes)
 python main_generator.py --auto-idea --dry-run
+
+# 4. Con opciones avanzadas
+python main_generator.py \
+    --auto-idea \
+    --output ./MisProyectos \
+    --overwrite  # Sobrescribe imágenes existentes
+
+# 5. Generar con Runware/Qwen (económico) y animar
+python main_generator.py \
+    --auto-idea \
+    --image-model qwen \  # Usa Qwen-Image (más barato)
+    --animate             # Anima las imágenes generadas
+
+# Resultado:
+# ./MisProyectos/Nombre_Del_Proyecto/
+#   ├── script.txt           # Guion con etiquetas [SPEAKER] e [imagen:X.png]
+#   ├── social_post.txt      # Post para redes sociales
+#   ├── visual_prompts.json  # Prompts visuales generados
+#   ├── brief.txt            # Brief de consistencia visual
+#   ├── metadata.json        # Metadata del proyecto
+#   └── images/              # Imágenes generadas
+#       ├── 1.png
+#       ├── 2.png
+#       └── ...
 ```
 
 ### Renderizar video (audio + video)
 
 ```bash
-# Generar audios y video
+# 1. Generar audios y video completo
+python main_renderer.py ./MisProyectos/Mi_Historia/script.txt \
+    --outdir ./Out/Mi_Historia \
+    --images-dir ./MisProyectos/Mi_Historia/images \
+    --video-out ./Out/Mi_Historia/video.mp4
+
+# 2. Con efecto Ken Burns y música
 python main_renderer.py script.txt \
-    --outdir ./Out/MiProyecto \
+    --outdir ./Out \
     --images-dir ./images \
-    --video-out ./Out/MiProyecto/video.mp4
+    --video-out ./video_final.mp4 \
+    --kenburns in \              # Zoom in suave
+    --kb-zoom 0.15 \             # 15% de zoom
+    --kb-sticky \                # No reinicia Ken Burns en misma imagen
+    --music-audio \              # Activa música de fondo
+    --music-audio-vol 0.15       # Volumen de música al 15%
 
-# Solo generar audios (sin video)
-python main_renderer.py script.txt --outdir ./Out/MiProyecto
+# 3. Resolución vertical (TikTok/Reels) 9:16
+python main_renderer.py script.txt \
+    --video-out ./vertical.mp4 \
+    --resolution 1080x1920 \     # Vertical
+    --fit cover \                # Recorta para llenar
+    --kenburns out \             # Zoom out
+    --kb-pan random              # Paneo aleatorio
 
-# Dry-run (simular sin generar archivos)
+# 4. Solo generar audios (sin video)
+python main_renderer.py script.txt \
+    --outdir ./Out/MiProyecto
+
+# 5. Dry-run (simular sin generar archivos)
 python main_renderer.py script.txt --dry-run
+
+# Resultado:
+# ./Out/Mi_Historia/
+#   ├── audio/               # Audios individuales
+#   │   ├── 001_NARRADOR_*.mp3
+#   │   ├── 002_HOMBRE30_*.mp3
+#   │   └── ...
+#   ├── manifest.json        # Metadata de bloques
+#   └── video.mp4            # Video final (si se especificó --video-out)
+```
+
+### Opciones avanzadas de renderizado
+
+```bash
+# Ken Burns completo
+--kenburns {none,in,out}    # Tipo de efecto
+--kb-zoom 0.10              # Cantidad de zoom (10% por defecto)
+--kb-pan {center,tl2br,tr2bl,bl2tr,br2tl,random}  # Dirección
+--kb-sticky                 # No reinicia en imágenes consecutivas
+
+# Ajuste visual
+--fit {contain,cover}       # contain=letterbox, cover=recorta
+--bg-color "#000000"        # Color de fondo
+--pad-ms 200                # Padding al final de cada clip (ms)
+
+# Audio
+--music-audio               # Activa música (./images/musica.mp3)
+--music-audio-vol 0.2       # Volumen de música
+--media-keep-audio          # Mantiene audio de videos fuente
+--media-audio-vol 0.2       # Volumen de audio de videos
+
+# Video
+--resolution 1920x1080      # Resolución (WxH)
+--fps 30                    # Frames por segundo
+```
+
+### Opciones de main_generator.py
+
+```bash
+# Selección de modelo de imágenes
+--image-model {gemini,qwen}  # gemini=alta calidad, qwen=económico (default: gemini)
+--animate                    # Anima imágenes con Runware (solo con qwen)
+--overwrite                  # Sobrescribe imágenes existentes
+--output ./dir               # Directorio de salida
+--dry-run                    # Simular sin generar imágenes
 ```
 
 ## 📦 Módulos
@@ -122,31 +211,34 @@ ELEVENLABS_API_KEY=...
 RUNWARE_API_KEY=...  # Opcional
 ```
 
-## 🔧 Tareas Pendientes
+## ✅ Estado de las Funcionalidades
 
-La refactorización ha creado una estructura base sólida, pero algunas funcionalidades complejas requieren completarse:
-
-### Alta Prioridad
-1. **Generación de imágenes con Gemini** (`src/services/gemini_service.py`)
-   - Lógica de consistencia visual
+### Completadas
+1. ✅ **Generación de imágenes con Gemini** (`src/services/gemini_service.py`)
+   - Lógica completa de consistencia visual
    - Manejo de brief de protagonista
-   - Ver `create_project.py` líneas 926-1358
+   - Clasificación automática de elementos visuales
+   - Detección de protagonista con marcador [PROTAGONISTA]
+   - Reintentos y manejo de prompts bloqueados
+   - **Archivo**: `src/content/consistency.py` (240 líneas)
 
-2. **Composición completa de video** (`src/video/composition.py`)
-   - Integración completa de clips
-   - Manejo de cierre
-   - Música de fondo
-   - Ver `generate_audiovideo_from_txt_drama.py` líneas 654-1104
+2. ✅ **Composición completa de video** (`src/video/renderer.py`)
+   - Integración completa de clips con Ken Burns
+   - Manejo de bloque [CIERRE]
+   - Música de fondo con control de volumen
+   - Soporte para imágenes y videos
+   - Generación de subtítulos SRT y ASS
+   - **Archivo**: `src/video/renderer.py` (240 líneas)
 
-3. **Generación de imágenes con Runware** (`src/services/runware_service.py`)
-   - Implementación async
-   - Animación de imágenes
-   - Ver `create_project.py` líneas 1359-1698
+3. ✅ **Main scripts completamente funcionales**
+   - `main_generator.py`: Genera historias completas con imágenes
+   - `main_renderer.py`: Renderiza videos con todas las opciones
 
-### Media Prioridad
-- Menús interactivos (selección de modelo, estilo)
-- Generación de subtítulos avanzada (typing effect)
-- Integración de música de fondo
+### Opcional
+- 🟡 **Generación con Runware** (`src/services/runware_service.py`)
+   - Estructura base creada
+   - Requiere completar integración async si se desea usar
+   - Ver `create_project.py` líneas 1117-1698 para referencia
 
 ## 🎯 Ventajas de la Nueva Estructura
 
