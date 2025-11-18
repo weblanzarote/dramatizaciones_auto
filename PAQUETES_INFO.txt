@@ -8,7 +8,7 @@
 
 ═══════════════════════════════════════════════════════════════════════════════
 
-📋 CONTENIDO DEL PAQUETE (40 archivos):
+📋 CONTENIDO DEL PAQUETE (41 archivos):
 
 ┌─ SCRIPTS PRINCIPALES (2)
 │  ├─ main_generator.py      - Generador de historias e imágenes
@@ -19,8 +19,9 @@
 │  ├─ .env.example          - Plantilla de API keys
 │  └─ .gitignore            - Archivos a ignorar en git
 │
-├─ DOCUMENTACIÓN (4)
+├─ DOCUMENTACIÓN (5)
 │  ├─ INSTALACION_MODULAR.md     - 📖 GUÍA DE INSTALACIÓN
+│  ├─ FUENTES_SUBTITULOS.md      - 📝 Configuración de fuentes para subtítulos
 │  ├─ REFACTORING_README.md      - Guía completa de uso
 │  ├─ README.md                  - Documentación original
 │  └─ CONFIGURACION_GEMINI.md    - Configuración de Gemini

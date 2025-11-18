@@ -113,10 +113,23 @@ python main_renderer.py ./output/NombreProyecto/script.txt \
     --music-audio
 ```
 
+## 📁 Fuentes para Subtítulos (Opcional)
+
+Si quieres usar fuentes personalizadas (como BebasNeue-Regular) para subtítulos:
+
+```bash
+mkdir Fonts
+# Copia tus archivos .ttf a esta carpeta
+cp /ruta/a/BebasNeue-Regular.ttf Fonts/
+```
+
+Consulta `FUENTES_SUBTITULOS.md` para más detalles.
+
 ## 🔧 Estructura del Proyecto
 
 ```
 dramatizaciones_auto_modular/
+├── Fonts/               # (Opcional) Fuentes personalizadas .ttf
 ├── src/
 │   ├── config/          # Configuraciones
 │   │   ├── settings.py  # API keys, constantes
