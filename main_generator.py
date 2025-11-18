@@ -63,6 +63,7 @@ def main():
     parser.add_argument("--auto-idea", action="store_true", help="Generar idea automáticamente")
     parser.add_argument("--output", type=Path, default=Path("./output"), help="Directorio de salida")
     parser.add_argument("--dry-run", action="store_true", help="Simular sin generar imágenes")
+    parser.add_argument("--overwrite", action="store_true", help="Sobrescribir imágenes existentes")
 
     args = parser.parse_args()
 
@@ -152,20 +153,104 @@ def main():
     # 7. Generar imágenes (si no es dry-run)
     if args.dry_run:
         print("\n✅ DRY-RUN: No se generaron imágenes.")
+        print(f"✅ ¡Proyecto creado exitosamente en {project_dir}!")
     else:
-        print("\n🖼️  Generación de imágenes...")
-        print("⚠️  NOTA: La lógica completa de generación de imágenes con Gemini")
-        print("   está en el archivo original create_project.py (líneas 1245-1698).")
-        print("   Por simplicidad, esta versión refactorizada requiere que completes")
-        print("   esa funcionalidad en src/services/gemini_service.py")
+        # Importar módulos adicionales para generación
+        import re
+        from src.content.consistency import (
+            extract_visual_consistency_brief,
+            ensure_brief_dict,
+            classify_scene_for_brief,
+            build_consistency_context_for_scene
+        )
 
-        # TODO: Implementar generación de imágenes
-        # for i, prompt in enumerate(visual_prompts, 1):
-        #     full_prompt = build_master_prompt(style_block, prompt)
-        #     # Llamar a gemini_service.generate_image(...)
-        #     pass
+        print("\n🖼️  Generación de imágenes con Gemini...")
 
-    print(f"\n✅ ¡Proyecto creado exitosamente en {project_dir}!")
+        # Preparar escenas de audio
+        audio_scenes_list = re.findall(r'\[imagen:\d+\.png\]\s*(.*?)(?=\n\s*\[|$)', script_text, re.DOTALL)
+        if not audio_scenes_list:
+            print("❌ ERROR: No se encontraron descripciones de escenas en el guion.")
+            sys.exit(1)
+
+        if len(audio_scenes_list) != len(visual_prompts):
+            print(f"⚠️ Advertencia: Número de escenas de audio ({len(audio_scenes_list)}) "
+                  f"diferente a prompts visuales ({len(visual_prompts)})")
+
+        # Detectar protagonista con marcador [PROTAGONISTA]
+        character_flags = []
+        cleaned_visual_prompts = []
+
+        for p in visual_prompts:
+            has_protagonist = "[PROTAGONISTA]" in p
+            character_flags.append(has_protagonist)
+            cleaned = p.replace("[PROTAGONISTA]", "la protagonista")
+            cleaned_visual_prompts.append(cleaned)
+
+        visual_prompts = cleaned_visual_prompts
+        print(f"   🧩 Escenas con protagonista detectadas: {sum(character_flags)} de {len(character_flags)}")
+
+        # Extraer brief de consistencia
+        visual_brief_raw = extract_visual_consistency_brief(script_text, openai_service, model_type="gemini")
+        visual_brief = ensure_brief_dict(visual_brief_raw)
+
+        # Guardar brief
+        try:
+            brief_file = project_dir / "brief.txt"
+            with open(brief_file, "w", encoding="utf-8") as f:
+                f.write("PERSONAJE:\n" + (visual_brief["character"] or "(sin definir)") + "\n\n")
+                f.write("ESCENARIO/UBICACIÓN:\n" + (visual_brief["environment"] or "(sin definir)") + "\n\n")
+                f.write("ILUMINACIÓN/ATMÓSFERA:\n" + (visual_brief["lighting"] or "(sin definir)") + "\n\n")
+                f.write("OBJETOS CLAVE:\n" + (visual_brief["objects"] or "(sin definir)") + "\n")
+            print(f"   💾 Brief visual guardado en: {brief_file}")
+        except Exception as e:
+            print(f"   ⚠️ Advertencia: No se pudo guardar brief.txt: {e}")
+
+        # Construir contexto por escena
+        scene_contexts = []
+        total_scenes = len(visual_prompts)
+
+        for idx, audio_scene in enumerate(audio_scenes_list):
+            flags = classify_scene_for_brief(audio_scene)
+
+            # El personaje se controla por el marcador [PROTAGONISTA]
+            if idx < len(character_flags) and character_flags[idx]:
+                flags["include_character"] = True
+            else:
+                flags["include_character"] = False
+
+            ctx = build_consistency_context_for_scene(
+                visual_brief,
+                include_character=flags["include_character"],
+                include_environment=flags["include_environment"],
+                include_objects=flags["include_objects"],
+                total_scenes=total_scenes,
+            )
+            scene_contexts.append(ctx)
+
+        print(f"   📖 Contextos de consistencia preparados por escena (total: {len(scene_contexts)})")
+
+        # Generar imágenes con Gemini
+        images_dir = project_dir / "images"
+        images_dir.mkdir(exist_ok=True)
+
+        success = gemini_service.generate_visuals_for_script(
+            visual_prompts_list=visual_prompts,
+            audio_scenes_list=audio_scenes_list,
+            scene_contexts_list=scene_contexts,
+            project_path=str(project_dir),
+            client_openai=openai_service,
+            style_block=style_block,
+            overwrite=args.overwrite if hasattr(args, 'overwrite') else False,
+            image_model="gemini-2.5-flash-image",
+            style_slug_for_pixelize=style_name.lower()
+        )
+
+        if success:
+            print(f"\n✅ ¡Proyecto creado exitosamente en {project_dir}!")
+            print(f"📁 Imágenes generadas en: {images_dir}")
+        else:
+            print(f"\n⚠️ Proyecto creado pero hubo errores en la generación de imágenes.")
+            print(f"📁 Revisa el directorio: {project_dir}")
 
 
 if __name__ == "__main__":
