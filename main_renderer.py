@@ -106,6 +106,54 @@ def main():
     parser.add_argument("--music-audio-vol", type=float, default=0.2,
                         help="Volumen de la música de fondo (0.0-1.0)")
 
+    # Subtítulos SRT
+    parser.add_argument("--subs-out", type=Path, default=None,
+                        help="Genera archivo SRT con subtítulos")
+    parser.add_argument("--subs-with-speaker", action="store_true",
+                        help="Incluye nombre del speaker en subtítulos")
+    parser.add_argument("--subs-font", default="Arial",
+                        help="Fuente para burn-in (FFmpeg/libass)")
+    parser.add_argument("--subs-fontsize", type=float, default=7.0,
+                        help="Fontsize libass (≈6–8 en 1080x1920)")
+    parser.add_argument("--subs-margin-v", type=int, default=100,
+                        help="Margen vertical inferior (px)")
+    parser.add_argument("--subs-outline", type=int, default=2,
+                        help="Grosor contorno")
+    parser.add_argument("--subs-shadow", type=int, default=1,
+                        help="Sombra")
+    parser.add_argument("--subs-align", type=int, default=2,
+                        help="Alineación ASS (2=bottom-center)")
+    parser.add_argument("--subs-typing", action="store_true",
+                        help="Efecto typing para subtítulos")
+    parser.add_argument("--subs-word-timing", choices=["length", "uniform"], default="length",
+                        help="Modo de peso por palabra")
+    parser.add_argument("--subs-min-seg-ms", type=int, default=60,
+                        help="Duración mínima de segmento de palabra (ms)")
+    parser.add_argument("--subs-uppercase", action="store_true",
+                        help="Convierte subtítulos a mayúsculas")
+    parser.add_argument("--subs-chunk-size", type=int, default=3,
+                        help="Tamaño de chunks para subtítulos")
+    parser.add_argument("--subs-chunk-hold-ms", type=int, default=0,
+                        help="Tiempo de hold entre chunks (ms)")
+    parser.add_argument("--subs-chunk-prefix-all", action="store_true",
+                        help="Prefija todos los chunks con speaker")
+
+    # Subtítulos ASS (con efectos typing/karaoke)
+    parser.add_argument("--ass-typing-out", type=Path, default=None,
+                        help="Genera archivo ASS con efectos typing")
+    parser.add_argument("--ass-style-name", default="Typing",
+                        help="Nombre de estilo ASS para el efecto")
+    parser.add_argument("--ass-font", default="BebasNeue-Regular",
+                        help="Fuente ASS (ej: BebasNeue-Regular, Arial)")
+    parser.add_argument("--ass-fontsize", type=int, default=48,
+                        help="Tamaño ASS")
+    parser.add_argument("--ass-margin-v", type=int, default=80,
+                        help="Margen inferior ASS (px)")
+    parser.add_argument("--ass-outline", type=int, default=2,
+                        help="Contorno ASS")
+    parser.add_argument("--ass-shadow", type=int, default=1,
+                        help="Sombra ASS")
+
     args = parser.parse_args()
 
     # Validar API keys
